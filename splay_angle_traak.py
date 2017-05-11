@@ -57,7 +57,7 @@ selections_traakTM4 = [
 ('trp_gapB', 'distance', 'protein and (resid 372 or resid 514) and name CA')
 ]
 
-os.makedir('out')
+os.mkdir('out')
 
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
