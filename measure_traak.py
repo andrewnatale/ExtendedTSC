@@ -4,33 +4,45 @@ import ExtendedTSC
 # import mda_plots
 
 # topology and trajectory files
-#psffile = sys.argv[1]
-#dcdfile = sys.argv[2]
+try:
+    psffile = sys.argv[1]
+    dcdfile = sys.argv[2]
+except IndexError:
+    psffile = None
+    dcdfile = None
 # stepsize in ps
 stepsize = 500
 
-outtag = '.splay_meas.dat'
+# outtag = '.splay_meas.dat'
+outtag = '.test.dat'
+# make output dir in cwd
+os.mkdir('out')
 
-# hardcode filenames for batch process
-filepairs = [
-('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_full_trimmed/trkG124full.ion.psf',
- '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full_npt.wrap_alignSF.all.500ps.dcd'),
-('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S1S3_trimmed/trkG124_S1S3.ion.psf',
- '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3_npt.wrap_alignSF.all.500ps.dcd'),
-('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S2S4_trimmed/trkG124S2S4.ion.psf',
- '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4_npt.wrap_alignSF.all.500ps.dcd'),
-('/Volumes/data/andrew/mackinnon_traak/traakWT_full_trimmed/trkWT.popc200.ion.psf',
- '/Volumes/data/andrew/mackinnon_traak/traakWT_full_trimmed/traakWT_full_npt.wrap_alignSF.all.500ps.dcd'),
-('/Volumes/data/andrew/mackinnon_traak/traakWT_S1S3_trimmed/trkWTS1S3.ion.psf',
- '/Volumes/data/andrew/mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3_npt.wrap_alignSF.all.500ps.dcd'),
-('/Volumes/data/andrew/mackinnon_traak/traakWT_S2S4_trimmed/trkWTS2S4.ion.psf',
- '/Volumes/data/andrew/mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4_npt.wrap_alignSF.all.500ps.dcd')
-]
-
-filepairsTM4 = [
-('/Volumes/data/andrew/traakTM4_trimmed/traakTM4.popc.ion.psf',
- '/Volumes/data/andrew/traakTM4_trimmed/traakTM4_npt.wrap_alignSF.all.500ps.dcd'),
-]
+# if I'm not batch processing, I'm probably just testing on a trajectory with the non TM4 topology
+if psffile and dcdfile:
+    print 'Using inputs specified from command line'
+    filepairs = [(os.path.abspath(psffile), os.path.abspath(dcdfile))]
+    filepairsTM4 = None
+else:
+    # hardcode filenames for batch process
+    filepairs = [
+    ('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_full_trimmed/trkG124full.ion.psf',
+     '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full_npt.wrap_alignSF.all.500ps.dcd'),
+    ('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S1S3_trimmed/trkG124_S1S3.ion.psf',
+     '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3_npt.wrap_alignSF.all.500ps.dcd'),
+    ('/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S2S4_trimmed/trkG124S2S4.ion.psf',
+     '/Volumes/data/andrew/lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4_npt.wrap_alignSF.all.500ps.dcd'),
+    ('/Volumes/data/andrew/mackinnon_traak/traakWT_full_trimmed/trkWT.popc200.ion.psf',
+     '/Volumes/data/andrew/mackinnon_traak/traakWT_full_trimmed/traakWT_full_npt.wrap_alignSF.all.500ps.dcd'),
+    ('/Volumes/data/andrew/mackinnon_traak/traakWT_S1S3_trimmed/trkWTS1S3.ion.psf',
+     '/Volumes/data/andrew/mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3_npt.wrap_alignSF.all.500ps.dcd'),
+    ('/Volumes/data/andrew/mackinnon_traak/traakWT_S2S4_trimmed/trkWTS2S4.ion.psf',
+     '/Volumes/data/andrew/mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4_npt.wrap_alignSF.all.500ps.dcd')
+    ]
+    filepairsTM4 = [
+    ('/Volumes/data/andrew/traakTM4_trimmed/traakTM4.popc.ion.psf',
+     '/Volumes/data/andrew/traakTM4_trimmed/traakTM4_npt.wrap_alignSF.all.500ps.dcd'),
+    ]
 
 # selections for measurements
 selections = [
@@ -75,16 +87,15 @@ selections_traakTM4 = [
 ('W262_chi2B', 'dihedral', "protein and resid 517 and (name CA or name CB or name CG or name CD1)")
 ]
 
-os.mkdir('out')
-
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
     a.measures_from_dcd(selections,pair[0],pair[1],stepsize)
     output = pair[1].split('/')[-1].split('.')[0] + outtag
     a.write_dat(os.path.join('out', output))
 
-for pair in filepairsTM4:
-    a = ExtendedTSC.ExtendedTSC()
-    a.measures_from_dcd(selections_traakTM4,pair[0],pair[1],stepsize)
-    output = pair[1].split('/')[-1].split('.')[0] + outtag
-    a.write_dat(os.path.join('out', output))
+if filepairsTM4:
+    for pair in filepairsTM4:
+        a = ExtendedTSC.ExtendedTSC()
+        a.measures_from_dcd(selections_traakTM4,pair[0],pair[1],stepsize)
+        output = pair[1].split('/')[-1].split('.')[0] + outtag
+        a.write_dat(os.path.join('out', output))

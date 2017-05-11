@@ -199,13 +199,21 @@ class ExtendedTSC(object):
             for meas in self.measurements:
                 if meas.width == 1:
                     datfile.write('%s ' % meas.name)
-                # if width is 3, the data are likely x,y,z coordinates
-                # if not, oh well it's just aesthetic
+                # if width is 3, the data are likely a single x,y,z coordinate
                 elif meas.width == 3:
                     datfile.write('%s:x ' % meas.name)
                     datfile.write('%s:y ' % meas.name)
                     datfile.write('%s:z ' % meas.name)
-                # for other widths, just use numbers to mark sub-measurements
+                # if width is otherwise divisible by 3, data is a group of coordinates
+                elif meas.width%3 == 0:
+                    track = 1
+                    coords = ['x','y','z']
+                    for i in range(meas.width):
+                        coord = coords[i%3]
+                        datfile.write('%s:%s%d ' % (meas.name,coord,track))
+                        if coord == 'z':
+                            track += 1
+                # for other widths (should these exist?), just use numbers to mark sub-measurements
                 else:
                     for i in range(1,meas.width+1):
                         datfile.write('%s:%d ' % (meas.name,i))

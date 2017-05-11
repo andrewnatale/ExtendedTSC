@@ -41,8 +41,6 @@ for elem in datalist:
     ]
     traak_plots.timeseries_AB_stack(plotname, dataholder, elem.access['time'][0,:]/1000.0, ylimits=[4.,20.])
 
-
-
 # # selections for distance measurements
 # selections = [
 # ('fenestrationA',    'distance',    '(segid TRKA and resid 280) or (segid TRKB and resid 155) and name CA'),
