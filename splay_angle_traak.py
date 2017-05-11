@@ -57,14 +57,16 @@ selections_traakTM4 = [
 ('trp_gapB', 'distance', 'protein and (resid 372 or resid 514) and name CA')
 ]
 
+os.makedir('out')
+
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
     a.measures_from_dcd(selections,pair[0],pair[1],stepsize)
     output = pair[1].split('/')[-1].split('.')[0] + '.splay_meas.dat'
-    a.write_dat(output)
+    a.write_dat(os.path.join('out', output))
 
 for pair in filepairsTM4:
     a = ExtendedTSC.ExtendedTSC()
     a.measures_from_dcd(selections_traakTM4,pair[0],pair[1],stepsize)
     output = pair[1].split('/')[-1].split('.')[0] + '.splay_meas.dat'
-    a.write_dat(output)
+    a.write_dat(os.path.join('out', output))
