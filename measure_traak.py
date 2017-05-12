@@ -69,7 +69,7 @@ selections = [
 # for res in chain A, subtract 27 from actual numbers
 # for res in chain B, add 255
 selections_traakTM4 = [
-('s1cog',      'COG',      'protein and (resid 125 or resid 124 or resid 387 or resid 386 or resid 214 or resid 213 or resid 496 or resid 495) and name O'),
+('s1cog',      'COG',      'protein and (resid 105 or resid 104 or resid 387 or resid 386 or resid 214 or resid 213 or resid 496 or resid 495) and name O'),
 ('s4cog',      'COG',      'protein and (resid 102 or resid 384 or resid 211 or resid 493) and (name O or name OG1)'),
 ('W186_A',     'atom',     'protein and resid 159 and name CA'),
 ('W186_B',     'atom',     'protein and resid 441 and name CA'),
