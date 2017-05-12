@@ -16,7 +16,8 @@ stepsize = 500
 # outtag = '.splay_meas.dat'
 outtag = '.test.dat'
 # make output dir in cwd
-os.mkdir('out')
+outdir = 'test'
+os.mkdir(outdir)
 
 # if I'm not batch processing, I'm probably just testing on a trajectory with the non TM4 topology
 if psffile and dcdfile:
@@ -91,11 +92,11 @@ for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
     a.measures_from_dcd(selections,pair[0],pair[1],stepsize)
     output = pair[1].split('/')[-1].split('.')[0] + outtag
-    a.write_dat(os.path.join('out', output))
+    a.write_dat(os.path.join(outdir, output))
 
 if filepairsTM4:
     for pair in filepairsTM4:
         a = ExtendedTSC.ExtendedTSC()
         a.measures_from_dcd(selections_traakTM4,pair[0],pair[1],stepsize)
         output = pair[1].split('/')[-1].split('.')[0] + outtag
-        a.write_dat(os.path.join('out', output))
+        a.write_dat(os.path.join(outdir, output))
