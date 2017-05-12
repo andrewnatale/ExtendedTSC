@@ -51,7 +51,7 @@ selections = [
 ('W186_A',     'atom',     'segid TRKA and resid 186 and name CA'),
 ('W186_B',     'atom',     'segid TRKB and resid 186 and name CA'),
 ('P190_A',     'atom',     'segid TRKA and resid 190 and name CA'),
-('P190_B',     'atom',     'segid TRKA and resid 190 and name CA'),
+('P190_B',     'atom',     'segid TRKB and resid 190 and name CA'),
 ('trp_gapA',   'distance', 'segid TRKA and (resid 117 or resid 259) and name CA'),
 ('trp_gapB',   'distance', 'segid TRKB and (resid 117 or resid 259) and name CA'),
 ('fenA',       'distance', '(segid TRKA and resid 280) or (segid TRKB and resid 155) and name CA'),
