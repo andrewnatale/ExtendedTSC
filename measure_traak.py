@@ -95,12 +95,12 @@ selections_traakTM4 = [
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
     a.measures_from_dcd(selections,pair[0],pair[1])
-    output = pair[1].split('/')[-1].split('.')[0] + outtag
+    output = pair[1].split('/')[-1].split('.')[0] + outtag + '.dat'
     a.write_dat(os.path.join(outdir, output))
 
 if filepairsTM4:
     for pair in filepairsTM4:
         a = ExtendedTSC.ExtendedTSC()
         a.measures_from_dcd(selections_traakTM4,pair[0],pair[1])
-        output = pair[1].split('/')[-1].split('.')[0] + outtag
+        output = pair[1].split('/')[-1].split('.')[0] + outtag + '.dat'
         a.write_dat(os.path.join(outdir, output))

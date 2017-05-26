@@ -10,7 +10,7 @@ target = int(sys.argv[1])
 
 #input_prefix = '/Volumes/data/andrew'
 input_prefix = '/mnt/hd_scratch/traak_data'
-output_dir = 'filter_occupancy05252017'
+output_dir = 'lipid_binding05252017'
 
 filepairs = [
 (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/trkG124full.ion.psf'),
@@ -31,10 +31,10 @@ filepairsTM4 = [
  os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4_npt.wrap_alignSF.all.500ps.dcd')),
 ]
 
-# psffile = filepairs[target][0]
-# dcdfile = filepairs[target][1]
-psffile = filepairsTM4[0][0]
-dcdfile = filepairsTM4[0][1]
+psffile = filepairs[target][0]
+dcdfile = filepairs[target][1]
+# psffile = filepairsTM4[0][0]
+# dcdfile = filepairsTM4[0][1]
 print psffile,dcdfile
 frameskip = 1
 
@@ -42,7 +42,7 @@ frameskip = 1
 
 # select via a cylinder - faster but the trajectory must be aligned such that the z-axis is parallel to the filter
 #selecttext = '(cyzone 3.5 15 -2 protein and (resid 129 or resid 238) and name OG1) and (name POT or (name OH2 and resname TIP3))'
-selecttext = '(cyzone 3.5 15 -2 protein and (resid 102 or resid 384 or resid 211 or resid 493) and name OG1) and (name POT or (name OH2 and resname TIP3))'
+selecttext = '(sphzone 10 protein and segid TRKA and resid 124 and name CA) and resname POPC'
 
 # select via 5 spheres centered on the S0-S4 positions, much slower than using a cylinder but requires no trajectory alignment
 # selecttext = '(\
@@ -95,26 +95,19 @@ print sel_filter.masking_data
 # build selection lists for use with ExtendedTSC
 selections = []
 selections_masks = []
-water_idx = 0
-pot_idx = 0
+idx = 0
 for elem in sorted(sel_filter.filter_set):
-    if elem[1] == 'OH2':
-        water_idx += 1
-        tmp_name = 'filter_water%d' % water_idx
-        tmp_type = 'COM'
-        tmp_selecttext = 'segid %s and resid %d' % (elem[3],elem[2])
-    elif elem[1] == 'POT':
-        pot_idx += 1
-        tmp_name = 'filter_pot%d' % pot_idx
-        tmp_type = 'atom'
-        tmp_selecttext = 'segid %s and resid %d' % (elem[3],elem[2])
+    idx += 1
+    tmp_name = 'popc%d' % idx
+    tmp_type = 'COG'
+    tmp_selecttext = 'segid %s and resid %d' % (elem[3],elem[2])
     selections.append((tmp_name,tmp_type,tmp_selecttext))
     selections_masks.append((tmp_name,'mask',tmp_selecttext))
 # add some filter reference points in case they come in handy later
-# selections.append(('S4bottom', 'COG', 'protein and (resid 129 or resid 238) and name OG1'))
-# selections.append(('S1top', 'COG', 'protein and (resid 132 or resid 241) and name O'))
-selections.append(('S4bottom', 'COG', 'protein and (resid 102 or resid 384 or resid 211 or resid 493) and name OG1'))
-selections.append(('S1top', 'COG', 'protein and (resid 105 or resid 387 or resid 214 or resid 496) and name O'))
+selections.append(('S4bottom', 'COG', 'protein and (resid 129 or resid 238) and name OG1'))
+selections.append(('S1top', 'COG', 'protein and (resid 132 or resid 241) and name O'))
+# selections.append(('S4bottom', 'COG', 'protein and (resid 102 or resid 384 or resid 211 or resid 493) and name OG1'))
+# selections.append(('S1top', 'COG', 'protein and (resid 105 or resid 387 or resid 214 or resid 496) and name O'))
 print selections
 
 # use ExtendedTSC to make measurements (sets up its own internal 'universe' object)
@@ -122,7 +115,7 @@ a = ExtendedTSC.ExtendedTSC()
 a.measures_from_dcd(selections,psffile,dcdfile,frameskip=frameskip)
 
 # format masking data
-masks = np.zeros((water_idx+pot_idx,np.shape(a.timesteps)[0]), dtype=int)
+masks = np.zeros((idx,np.shape(a.timesteps)[0]), dtype=int)
 for idxA, elem in enumerate(sorted(sel_filter.filter_set)):
     atom_idx = elem[0]
     for idxB, occupancy in enumerate(sel_filter.masking_data):
@@ -134,7 +127,7 @@ for idxA, elem in enumerate(sorted(sel_filter.filter_set)):
 
 output = dcdfile.split('/')[-1].split('.')[0]
 
-mask_widths = np.ones((water_idx+pot_idx),dtype=int).tolist()
+mask_widths = np.ones((idx),dtype=int).tolist()
 a.derivative_collection(selections_masks,mask_widths,masks)
-a.write_dat(os.path.join(output_dir, output + 'atom_coordinates.dat'))
-a.write_dat(os.path.join(output_dir, output + 'masks.dat'),derivative=True)
+a.write_dat(os.path.join(output_dir, output + '.lipidsA.atom_coordinates.dat'))
+a.write_dat(os.path.join(output_dir, output + '.lipidsA.masks.dat'),derivative=True)

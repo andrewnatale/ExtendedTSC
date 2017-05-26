@@ -202,7 +202,7 @@ class ExtendedTSC(object):
         # toggle 'populated' flag
         self.populated = True
 
-    def simplify_indexing(self,derivative=False):
+    def simplify_indexing(self,derivative=False,return_dict=False):
         # link Measurement objects to array and return a dict for lookup by name
         # doesn't add or change any data, just makes access a bit simpler
         # this function might be buggy... use with caution!
@@ -225,7 +225,8 @@ class ExtendedTSC(object):
             idx += meas.width
         # plotting doesn't work well without doing this
         self.access['time'] = np.reshape(self.timesteps, (1,-1))
-        return self.access
+        if return_dict:
+            return self.access
 
     def write_dat(self,outfile,derivative=False):
         # write measurements to data file with the following format:

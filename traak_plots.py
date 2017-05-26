@@ -56,17 +56,19 @@ def dihedral_AB_space(plotname,datalist,save=False):
 
 def timeseries_basic(plotname,data,time,ylimits=False,save=False):
     f, ax = plt.subplots()
+    colors = ['red', 'blue', 'green', 'purple', 'silver', 'gold']
     for idx,elem in enumerate(data):
         ax.plot(time, elem[1], c=colors[idx])
-        ax.text(0.99,0.99-0.1*idx, elem[0], color=colors[idx],
+        ax.text(0.99,0.99-0.08*idx, elem[0], color=colors[idx],
                 transform=ax.transAxes,verticalalignment='top',horizontalalignment='right')
     ax.set_xlim([time[0],time[-1]])
     if ylimits:
         ax.set_ylim(ylimits)
     ax.set_title(plotname)
     ax.set_xlabel('time (ns)')
+    ax.set_ylabel('Relative indole ring position (angstroms)')
     if save:
-        plt.savefig(plotname+'.ts_basic.png', bbox_inches='tight')
+        plt.savefig(plotname+'.W262_rotamers.png', bbox_inches='tight')
     else:
         plt.show()
 
@@ -74,7 +76,7 @@ def timeseries_AB_stack(plotname,data,time,ylimits=False,save=False):
     # data should be a list of tuples, each with 3 elements:
     # [('name1', arr1A, arr1B), ('name2', arr2A, arr2B), ...]
     f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
-    colors = ['red', 'blue', 'green', 'purple']
+    colors = ['red', 'blue', 'green', 'purple', 'silver', 'gold']
     for idx,elem in enumerate(data):
         ax1.plot(time, elem[1], c=colors[idx])
         ax2.plot(time, elem[2], c=colors[idx])
