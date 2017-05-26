@@ -74,7 +74,7 @@ def timeseries_AB_stack(plotname,data,time,ylimits=False,save=False):
     # data should be a list of tuples, each with 3 elements:
     # [('name1', arr1A, arr1B), ('name2', arr2A, arr2B), ...]
     f, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
-    colors = ['red', 'blue', 'green', 'yellow']
+    colors = ['red', 'blue', 'green', 'purple']
     for idx,elem in enumerate(data):
         ax1.plot(time, elem[1], c=colors[idx])
         ax2.plot(time, elem[2], c=colors[idx])
@@ -92,6 +92,11 @@ def timeseries_AB_stack(plotname,data,time,ylimits=False,save=False):
     ax2.set_ylabel('Subunit B')
     ax2.set_xlim([time[0],time[-1]])
     plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
+    ax1.grid(True)
+    ax2.grid(True)
+    gridlines = ax1.get_xgridlines() + ax1.get_ygridlines() + ax2.get_xgridlines() + ax2.get_ygridlines()
+    for line in gridlines:
+        line.set_linestyle('-.')
     if save:
         plt.savefig(plotname+'.ts_stack.png', bbox_inches='tight')
     else:

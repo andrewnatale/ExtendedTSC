@@ -1,10 +1,13 @@
 # ExtendedTSC.py - a small module to wrap and extend MDAnalysis' TimeseriesCollection module.
-# v0.1.1
+# v0.3.0
+# probably only works on MacOS/Linux/Unix
 # TODO:
-#   - allow to define a range of frames to analyze
-#   - allow loading of multiple dcd files into a single trajectory
-#   - implement additional measurement types
-#   - implement extension of a TimeseriesCollection with more complicated calculations
+#   - allow to define a range of frames to analyze - DONE v0.2.0
+#   - allow loading of multiple dcd files which form one continuous trajectory
+#   - implement additional measurement types allowed by TimeseriesCollection
+#   - implement extension of a TimeseriesCollection with more complicated calculations - partially DONE v0.3.0 - added interface to write arbitrary dat files
+#   - pass a Universe object as arg instead of creating our own?
+#   - getting messy, needs a refactor and incorporate volume tracking as a core function
 
 import sys, os, math, datetime
 import numpy as np
@@ -16,20 +19,24 @@ import MDAnalysis.core.Timeseries as tm
 # wrap and extend MDAnalysis' TimeseriesCollection module
 class ExtendedTSC(object):
 
-    def __init__(self,readfile=None):
+    def __init__(self,readfile=None,mask=False):
+        self.version = '0.3.0'
         self.populated = False
+        self.deriv_populated = False
         self.toponame = None
         self.trajname = None
-        self.stepsize = None
+        self.traj_stepsize = None
+        self.startframe = None
+        self.stopframe = None
+        self.frameskip = None
         self.data_datetime = None
         self.data_hostname = None
         self.measurements = []
         if readfile:
-            self.read_dat(readfile)
-
+            self.read_dat(readfile,mask=mask)
 
     # use MDAnalysis to generate measurement array from simulation data
-    def measures_from_dcd(self,selections,psffile,dcdfile,stepsize):
+    def measures_from_dcd(self,selections,psffile,dcdfile,traj_stepsize=500,startframe=0,stopframe=-1,frameskip=1):
         # check 'populated' flag
         if self.populated:
             print 'data arrays already populated, cannot do so again!'
@@ -37,7 +44,10 @@ class ExtendedTSC(object):
         # tracking info
         self.toponame = os.path.abspath(psffile)
         self.trajname = os.path.abspath(dcdfile)
-        self.stepsize = stepsize
+        self.traj_stepsize = traj_stepsize
+        self.startframe = startframe
+        self.stopframe = stopframe
+        self.frameskip = frameskip
         self.data_datetime = datetime.datetime.now()
         self.data_hostname = os.uname()[1]
         # init Measurement objects into a list
@@ -47,6 +57,8 @@ class ExtendedTSC(object):
         self.u = md.Universe(psffile,dcdfile,topology_format=u'PSF')
         # load measurements
         self.collection = tm.TimeseriesCollection()
+        # this loop identifies all the possible measurements that can be used with TimeseriesCollection
+        # however not all are implemented (really easy to do, I just haven't used some at all)
         for meas in self.measurements:
             if meas.type == 'atom':
                 tmpselect = self.u.select_atoms(meas.selecttext)
@@ -70,27 +82,49 @@ class ExtendedTSC(object):
                 meas.set_width(3)
                 self.collection.addTimeseries(tm.CenterOfGeometry(self.u.select_atoms(meas.selecttext)))
             elif meas.type == 'COM':
-                # not implemented
-                print 'measurement type %s not implemented, exiting' % meas.type
-                sys.exit(1)
+                meas.set_width(3)
+                self.collection.addTimeseries(tm.CenterOfMass(self.u.select_atoms(meas.selecttext)))
             elif meas.type == 'water_dipole':
                 # not implemented
                 print 'measurement type %s not implemented, exiting' % meas.type
                 sys.exit(1)
             else:
-                # warn, but continue
-                print 'unrecognized measure type!'
+                print 'unrecognized measure type %s!' % meas.type
+                sys.exit(1)
         # compute from trajectory
-        self.collection.compute(self.u.trajectory, start=0, stop=-1)
-        # create an array of time values (in ns) for plotting
-        self.timesteps = np.linspace(0,
-                                     float(np.shape(self.collection.data)[1]-1)*float(stepsize),
-                                     np.shape(self.collection.data)[1]
-                                     )
+        # NOTE: I think there's a bug in MDAnalysis' DCD reader that causes it to drop the last
+        # frame it should measure when slicing the trajectory in any way - need to confirm this
+        # everything should still work mostly as advertised
+        self.collection.compute(self.u.trajectory, start=self.startframe, stop=self.stopframe, skip=self.frameskip)
+        # create an array of time values (in ps) for plotting
+        starttime = self.startframe * self.traj_stepsize
+        endtime = self.startframe * self.traj_stepsize + self.traj_stepsize * self.frameskip * (np.shape(self.collection.data)[1] - 1)
+        self.timesteps = np.linspace(float(starttime), float(endtime), num=np.shape(self.collection.data)[1])
         # toggle 'populated' flag
         self.populated = True
 
-    def read_dat(self,infile):
+    def derivative_collection(self,descriptors,widths,array,time=None):
+        # basically just a way to interface with the file IO functions with arbitrary data
+        # the main way to use it would be to generate an inital collection, from a trajectory or a dat file,
+        # then do some calculations to derive new timeseries-like data structures
+        # then feed that back into this function to be able to write those new calculations
+        # to a dat file in the same way as the inital ones
+        # descriptors is a list of 3 string tuples (won't be processed by MDA, so can simply be descriptive)
+        # widths is a list of the same length as descriptors, containing the width of each measure
+        # array contains all the data that will be linked with the measurements
+        # NOTE: no error checking done here, this functions relies on the user to properly format the imput!
+        if time is not None:
+            self.timesteps = time
+        self.deriv_measurements = []
+        for desc in descriptors:
+            self.deriv_measurements.append(Measurement(desc))
+        for idx,elem in enumerate(widths):
+            self.deriv_measurements[idx].set_width(elem)
+        self.deriv_collection = DummyCollection(array)
+        # toggle 'populated' flag
+        self.deriv_populated = True
+
+    def read_dat(self,infile,mask=False):
         # rebuild array from previously generated measurements in a .dat file
         # check 'populated' flag
         if self.populated:
@@ -127,7 +161,11 @@ class ExtendedTSC(object):
             elif leader == '>trajname':
                 self.trajname = ' '.join(p.split()[1:])
             elif leader == '>stepsize(ps)':
-                self.stepsize = int(p.split()[1])
+                self.traj_stepsize = int(p.split()[1])
+            elif leader == '>framerange':
+                self.startframe = int(p.split()[1])
+                self.stopframe = int(p.split()[2])
+                self.frameskip = int(p.split()[3])
             # parse the more complicated lines
             # use '>measure' lines to create Measurement objects
             elif leader == '>measure':
@@ -152,7 +190,10 @@ class ExtendedTSC(object):
         while leader != '>end':
             p = lines.pop(0)
             tmptime.append(float(p.split()[1]))
-            tmplist.append([float(i) for i in p.split()[2:]])
+            if mask is True:
+                tmplist.append([int(i) for i in p.split()[2:]])
+            else:
+                tmplist.append([float(i) for i in p.split()[2:]])
             # new leader
             leader = lines[0].split()[0]
         # convert to arrays
@@ -161,7 +202,32 @@ class ExtendedTSC(object):
         # toggle 'populated' flag
         self.populated = True
 
-    def write_dat(self,outfile):
+    def simplify_indexing(self,derivative=False):
+        # link Measurement objects to array and return a dict for lookup by name
+        # doesn't add or change any data, just makes access a bit simpler
+        # this function might be buggy... use with caution!
+        # if I were sure the width determination always worked well, this would
+        # be allowed to happen automatically when generating or loading data
+        if derivative is True:
+            tgt_meas = self.deriv_measurements
+            tgt_collection = self.deriv_collection
+        else:
+            tgt_meas = self.measurements
+            tgt_collection = self.collection
+        idx = 0
+        self.access = {}
+        for meas in tgt_meas:
+            try:
+                meas.add_data(tgt_collection.data[idx:idx+meas.width,:])
+            except IndexError:
+                meas.add_data(tgt_collection.data[idx:,:])
+            self.access[meas.name] = meas.ts
+            idx += meas.width
+        # plotting doesn't work well without doing this
+        self.access['time'] = np.reshape(self.timesteps, (1,-1))
+        return self.access
+
+    def write_dat(self,outfile,derivative=False):
         # write measurements to data file with the following format:
         # # start a line containing a comment with '#'
         # >header # starts the header selection, should be the first non-comment line in file
@@ -176,27 +242,32 @@ class ExtendedTSC(object):
         # >endheader # ends the header section
         # >data # values at each timestep for each field
         # >end # marks end of file to help catch write errors
-        if not self.populated:
-            print 'no data to write!'
-            sys.exit(1)
+        if derivative is True:
+            if not self.deriv_populated:
+                print 'no data to write!'
+                sys.exit(1)
+            tgt_meas = self.deriv_measurements
+            tgt_collection = self.deriv_collection
+        else:
+            if not self.populated:
+                print 'no data to write!'
+                sys.exit(1)
+            tgt_meas = self.measurements
+            tgt_collection = self.collection
         # write header with tracking and selection information
         with open(outfile, 'w') as datfile:
-            datfile.write('>header\n')
-            if self.data_hostname:
-                datfile.write('>hostname %s\n' % self.data_hostname)
-            if self.data_datetime:
-                datfile.write('>timestamp %s\n' % self.data_datetime)
-            if self.toponame:
-                datfile.write('>toponame %s\n' % self.toponame)
-            if self.trajname:
-                datfile.write('>trajname %s\n' % self.trajname)
-            if self.stepsize:
-                datfile.write('>stepsize(ps) %s\n' % self.stepsize)
-            for meas in self.measurements:
+            datfile.write('>header created by ExtendedTSC-%s\n' % self.version)
+            datfile.write('>hostname %s\n' % self.data_hostname)
+            datfile.write('>timestamp %s\n' % self.data_datetime)
+            datfile.write('>toponame %s\n' % self.toponame)
+            datfile.write('>trajname %s\n' % self.trajname)
+            datfile.write('>stepsize(ps) %d\n' % self.traj_stepsize)
+            datfile.write('>framerange %d %d %d (start, stop, skip)\n' % (self.startframe, self.stopframe, self.frameskip))
+            for meas in tgt_meas:
                 datfile.write('>measure %s %s \"%s\"\n' % (meas.name, meas.type, meas.selecttext))
             # write out column headers
             datfile.write('>fields time ')
-            for meas in self.measurements:
+            for meas in tgt_meas:
                 if meas.width == 1:
                     datfile.write('%s ' % meas.name)
                 # if width is 3, the data are likely a single x,y,z coordinate
@@ -223,29 +294,10 @@ class ExtendedTSC(object):
             for idx,elem in np.ndenumerate(self.timesteps):
                 datfile.write('>data ')
                 datfile.write('%s ' % str(elem))
-                datfile.write('%s ' % ' '.join([str(i) for i in self.collection.data[:,idx[0]]]))
+                datfile.write('%s ' % ' '.join([str(i) for i in tgt_collection.data[:,idx[0]]]))
                 datfile.write('\n')
             # indcate that file was written completely
             datfile.write('>end')
-
-    def simplify_indexing(self):
-        # link Measurement objects to array and return a dict for lookup by name
-        # doesn't add or change any data, just makes access a bit simpler
-        # this function might be buggy... use with caution!
-        # if I were sure the width determination always worked well, this would
-        # be allowed to happen automatically when generating or loading data
-        idx = 0
-        self.access = {}
-        for meas in self.measurements:
-            try:
-                meas.add_data(self.collection.data[idx:idx+meas.width,:])
-            except IndexError:
-                meas.add_data(self.collection.data[idx:,:])
-            self.access[meas.name] = meas.ts
-            idx += meas.width
-        # plotting doesn't work well without doing this
-        self.access['time'] = np.reshape(self.timesteps, (1,-1))
-        #return access
 
 # container object for a single Timeseries measurement
 class Measurement(object):
@@ -270,3 +322,4 @@ class DummyCollection(object):
 
     def __init__(self, array):
         self.data = array
+        self.isdummy = True
