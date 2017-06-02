@@ -90,8 +90,8 @@ def timeseries_AB_stack(plotname,data,time,ylimits=False,save=False):
     ax1.set_title(plotname)
     # hardcoded labels
     ax2.set_xlabel('time (ns)')
-    ax1.set_ylabel('Subunit A')
-    ax2.set_ylabel('Subunit B')
+    ax1.set_ylabel('Subunit A distance')
+    ax2.set_ylabel('Subunit B distance')
     ax2.set_xlim([time[0],time[-1]])
     plt.setp([a.get_xticklabels() for a in f.axes[:-1]], visible=False)
     ax1.grid(True)

@@ -19,7 +19,7 @@ for elem in datalist:
     elem.simplify_indexing()
 
 save = True
-outdirname = 'rotamers_over_time'
+outdirname = 'wingtip_vs_time'
 
 if save:
     plotdir = os.path.join(indir,outdirname)
@@ -47,15 +47,15 @@ for elem in datalist:
     print elem.trajname
     plotname = elem.trajname.split('/')[-1].split('.')[0]
     dataholder1 = [
-    ('Fenestration: P155 to G280\'', elem.access['fenA'][0,:], elem.access['fenB'][0,:]),
-    # ('Expansion: G169 to T278', elem.access['expA'][0,:] ,elem.access['expB'][0,:]),
-    # ('M4-P1 gap: P259 to G117', elem.access['trp_gapA'][0,:], elem.access['trp_gapB'][0,:]),
-    # ('Wingtip distance: center axis to P190', dA, dB),
-    ('W262 orientation', orientA, orientB)
+    # ('M4-M2\' fenestration: P155 to G280\'', elem.access['fenA'][0,:], elem.access['fenB'][0,:]),
+    # ('M2-M4 bundle expansion: G169 to T278', elem.access['expA'][0,:] ,elem.access['expB'][0,:]),
+    # ('M4-P1 gap: P259 to G117', elem.access['trp_gapA'][0,:], elem.access['trp_gapB'][0,:])
+    ('Wingtip distance: pore axis to P190', dA, dB)
+    # ('W262 orientation', orientA, orientB)
     ]
     dataholder2 = [
     ('W262 alignment, subunit A', orientA),
     ('W262 alignment, subunit B', orientB)
     ]
-    # traak_plots.timeseries_AB_stack(plotname, dataholder1, elem.access['time'][0,:]/1000.0, ylimits=None)
-    traak_plots.timeseries_basic(plotname, dataholder2, elem.access['time'][0,:]/1000.0, ylimits=[-8,8], save=save)
+    traak_plots.timeseries_AB_stack(plotname, dataholder1, elem.access['time'][0,:]/1000.0, ylimits=[18,38], save=save)
+    #traak_plots.timeseries_basic(plotname, dataholder2, elem.access['time'][0,:]/1000.0, ylimits=[-8,8], save=save)
