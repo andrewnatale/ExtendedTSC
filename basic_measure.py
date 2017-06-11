@@ -10,13 +10,16 @@ except IndexError:
     psffile = None
     dcdfile = None
 
-#input_prefix = '/Volumes/data/andrew'
-input_prefix = '/mnt/hd_scratch/traak_data'
+input_prefix = '/Volumes/data/andrew'
 
-outtag = 'test'
+outtag = 'basic'
 # make output dir in cwd
-outdir = os.getcwd()
-#os.mkdir(outdir)
+outdir = os.path.join(os.getcwd(), 'basic_meas')
+try:
+    os.mkdir(outdir)
+except OSError:
+    if not os.path.isdir(outdir):
+        raise
 
 # if I'm not batch processing, I'm probably just testing on a trajectory with the non TM4 topology
 if psffile and dcdfile:
@@ -26,22 +29,22 @@ if psffile and dcdfile:
 else:
     # hardcode filenames for batch process
     filepairs = [
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/trkG124full.ion.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full_npt.wrap_alignSF.all.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/trkG124_S1S3.ion.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3_npt.wrap_alignSF.all.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/trkG124S2S4.ion.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4_npt.wrap_alignSF.all.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/trkWT.popc200.ion.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/traakWT_full_npt.wrap_alignSF.all.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/trkWTS1S3.ion.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3_npt.wrap_alignSF.all.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/trkWTS2S4.ion.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4_npt.wrap_alignSF.all.500ps.dcd'))
+    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
+     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full.new_align.500ps.dcd')),
+    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/topo.traakG124I_S1S3_npt.psf'),
+     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3.new_align.500ps.dcd')),
+    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/topo.traakG124I_S2S4_npt.psf'),
+     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4.new_align.500ps.dcd')),
+    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
+     os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/traakWT_full.new_align.500ps.dcd')),
+    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/topo.traakWT_S1S3_npt.psf'),
+     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3.new_align.500ps.dcd')),
+    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/topo.traakWT_S2S4_npt.psf'),
+     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4.new_align.500ps.dcd'))
     ]
     filepairsTM4 = [
-    (os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4.popc.ion.psf'),
-     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4_npt.wrap_alignSF.all.500ps.dcd')),
+    (os.path.join(input_prefix, 'traakTM4_trimmed/topo.traakTM4_npt.psf'),
+     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4.new_align.500ps.dcd')),
     ]
 
 # selections for measurements
@@ -63,7 +66,8 @@ selections = [
 ('W262_A_CB',  'atom',     'segid TRKA and resid 262 and name CB'),
 ('W262_A_CH',  'atom',     'segid TRKA and resid 262 and name CH2'),
 ('W262_B_CB',  'atom',     'segid TRKB and resid 262 and name CB'),
-('W262_B_CH',  'atom',     'segid TRKB and resid 262 and name CH2')
+('W262_B_CH',  'atom',     'segid TRKB and resid 262 and name CH2'),
+('pore_width', 'distance', 'protein and resid 277 and name CB')
 ]
 
 # to make selections in the traakTM4 trajectory, numbers must be adjusted
@@ -88,8 +92,11 @@ selections_traakTM4 = [
 ('W262_A_CB',  'atom',     'protein and resid 235 and name CB'),
 ('W262_A_CH',  'atom',     'protein and resid 235 and name CH2'),
 ('W262_B_CB',  'atom',     'protein and resid 517 and name CB'),
-('W262_B_CH',  'atom',     'protein and resid 517 and name CH2')
+('W262_B_CH',  'atom',     'protein and resid 517 and name CH2'),
+('pore_width', 'distance', 'protein and (resid 250 or resid 532) and name CB')
 ]
+
+os.chdir(outdir)
 
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()

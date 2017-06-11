@@ -6,6 +6,8 @@
 #   - squish bugs
 #   - move to MDAnalysis-0.16.1
 #   - implement an equivalent of TimeseriesCollection for non psf/dcd format trajectories
+#   - modularize for different filetypes
+#   - raise python errors instead of calling sys.exit()
 
 import sys, os, math, datetime
 import numpy as np
@@ -21,7 +23,7 @@ class ExtendedTSC(object):
     # version info
     version = '0.5.0'
 
-    def __init__(self,datfile=None):
+    def __init__(self,datfile=None,maskfile=None):
         """Sets up an ExtendedTSC object, either empty for making measurements
         (takes no init args) or with the name of a datfile to be read in."""
 
@@ -42,6 +44,9 @@ class ExtendedTSC(object):
         if datfile:
             self._data_reader(datfile)
             self.input_type = 'dat'
+        if maskfile:
+            self._data_reader(maskfile)
+            self.input_type = 'dat'
 
     def load_traj(self,psffile,dcdfile,traj_stepsize=500,framerange=(0,-1,1)):
         """Loads psf topology and dcd trajectory files and initializes MDAnalysis."""
@@ -51,7 +56,7 @@ class ExtendedTSC(object):
         self.traj_stepsize = traj_stepsize
         self.framerange = framerange
         # init MDA universe
-        self.u = md.Universe(topofile,trajfile)
+        self.u = md.Universe(self.toponame,self.trajname,format=u'DCD')
         self.input_type = 'traj'
 
     # def load_PBD(self,pdbfile):
@@ -72,7 +77,7 @@ class ExtendedTSC(object):
         for descriptor in selection_list:
             self.primaryDS.add_measurement(descriptor)
 
-    def measures_from_volumesearch(self,vol_shape,vol_center,search_selecttext,mode='res'):
+    def measures_from_volumesearch(self,vol_selecttext,search_selecttext,mode='res'):
         """Uses MDAnalysis to do an inital step through the trajectory to identify
         all the atoms/residues that enter a defined volume region in any frame,
         and build a list to measure their coordinates later.
@@ -80,7 +85,7 @@ class ExtendedTSC(object):
         info into a secondary mask _DataSet object which can be written to a file later.
         """
 
-        searcher = _VolumeSearch(vol_shape,vol_center,search_selecttext,mode=mode,universe=self.u)
+        searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode=mode,universe=self.u)
         # NOTE: there is a bug MDAnalysis' trajectory slicing - the documentation says the default of
         # (None,None,None) is equivalent to (0,-1,1), but actually passing (0,-1,1) to the trajectory
         # reader object causes it to drop the last frame
@@ -193,6 +198,26 @@ class ExtendedTSC(object):
                 print 'Something is wrong, DataSet arrays do not match (probably a bug). Exiting...'
                 sys.exit(1)
 
+    def water_search(self,vol_selecttext):
+        searcher = _WaterSearchZ(vol_selecttext,universe=self.u)
+        # NOTE: there is a bug MDAnalysis' trajectory slicing - the documentation says the default of
+        # (None,None,None) is equivalent to (0,-1,1), but actually passing (0,-1,1) to the trajectory
+        # reader object causes it to drop the last frame
+        if self.framerange == (0,-1,1):
+            searcher._setup_frames(self.u.trajectory,start=None,stop=None,step=None)
+        else:
+            searcher._setup_frames(self.u.trajectory,start=self.framerange[0],stop=self.framerange[1],step=self.framerange[2])
+        print searcher.start,searcher.stop,searcher.step,searcher.nframes
+        searcher.run()
+        # setup data set using search results
+        for descriptor in searcher.selections:
+            self.primaryDS.add_measurement(descriptor)
+        self.primaryDS.add_collection(searcher.coordarray)
+        starttime = self.framerange[0] * self.traj_stepsize
+        endtime = self.framerange[0] * self.traj_stepsize + self.traj_stepsize * self.framerange[2] * (np.shape(searcher.coordarray)[1] - 1)
+        self.primaryDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=np.shape(searcher.coordarray)[1]))
+        self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
+
     def write_data(self,fileprefix):
         """Writes data for all populated DataSets to .dat files in the cwd."""
 
@@ -235,10 +260,13 @@ class ExtendedTSC(object):
                 datfile.write('>stepsize(ps) %d\n' % self.traj_stepsize)
             if self.framerange:
                 datfile.write('>framerange %d %d %d (start, stop, skip)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
-            if self.pdbname:
-                datfile.write('>pdbname %d\n' % self.pdbname)
+            # if self.pdbname:
+            #     datfile.write('>pdbname %d\n' % self.pdbname)
+            # obligatory fields
             if mask:
-                datfile.write('>mask\n')
+                datfile.write('>mask True\n')
+            else:
+                datfile.write('>mask False\n')
             for meas in dataset.measurements:
                 datfile.write('>measure %s %s \"%s\"\n' % (meas.name, meas.type, meas.selecttext))
             # write out column headers
@@ -246,13 +274,8 @@ class ExtendedTSC(object):
             for meas in dataset.measurements:
                 if meas.width == 1:
                     datfile.write('%s ' % meas.name)
-                # if width is 3, the data are likely a single x,y,z coordinate
-                elif meas.width == 3:
-                    datfile.write('%s:x ' % meas.name)
-                    datfile.write('%s:y ' % meas.name)
-                    datfile.write('%s:z ' % meas.name)
-                # if width is otherwise divisible by 3, data is a group of coordinates
-                elif meas.width%3 == 0:
+                # coordinate data measure types
+                elif (meas.width%3 == 0) and (meas.type in ['atom', 'COG', 'COM']):
                     track = 1
                     coords = ['x','y','z']
                     for i in range(meas.width):
@@ -260,7 +283,7 @@ class ExtendedTSC(object):
                         datfile.write('%s:%s%d ' % (meas.name,coord,track))
                         if coord == 'z':
                             track += 1
-                # for other widths (should these exist?), just use numbers to mark sub-measurements
+                # for other widths, just use numbers to mark sub-measurements
                 else:
                     for i in range(1,meas.width+1):
                         datfile.write('%s:%d ' % (meas.name,i))
@@ -279,20 +302,6 @@ class ExtendedTSC(object):
         """Rebuilds array from previously generated measurements in a .dat file.
         Should only be called through __init__ and does not use TimeseriesCollection or MDAnalysis at all."""
 
-        # init _DataSets
-        if not self.primaryDS:
-            self.primaryDS = _DataSet()
-        else:
-            if self.primaryDS.populated:
-                print 'Data set init error, check your inputs. Exiting...'
-                sys.exit(1)
-        if not self.maskDS:
-            self.maskDS = _DataSet()
-        else:
-            if self.maskDS.populated:
-                print 'Data set init error, check your inputs. Exiting...'
-                sys.exit(1)
-        targetDS = self.primaryDS
         # open and read input file
         with open(infile, 'r') as datfile:
             lines = datfile.readlines()
@@ -326,8 +335,18 @@ class ExtendedTSC(object):
             elif leader == '>pdbname':
                 self.pdbname = ' '.join(p.split()[1:])
             elif leader == '>mask':
-                self.read_mask = True
-                targetDS = self.maskDS
+                if p.split()[1] == 'True':
+                    self.read_mask = True
+                    targetDS = self.maskDS
+                elif p.split()[1] == 'False':
+                    self.read_mask = False
+                    targetDS = self.primaryDS
+                else:
+                    print 'Cannot determine if file %s is data or mask. Exiting...' % infile
+                    sys.exit(1)
+                if targetDS.populated:
+                    print 'Data set init error with file %s, check your inputs. Exiting...' % infile
+                    sys.exit(1)
             elif leader == '>stepsize(ps)':
                 self.traj_stepsize = int(p.split()[1])
             elif leader == '>framerange':
@@ -428,9 +447,8 @@ class _DataSet(object):
 class _VolumeSearch(AnalysisBase):
     """Class for steping through a trajectory frame by frame and tracking individual atoms/residues."""
 
-    def __init__(self,vol_shape,vol_center,search_selecttext,mode,universe):
-        self.vol_shape = vol_shape
-        self.vol_center = vol_center
+    def __init__(self,vol_selecttext,search_selecttext,mode,universe):
+        self.vol_selecttext = vol_selecttext
         self.search_selecttext = search_selecttext
         self.u = universe
         # check mode
@@ -439,11 +457,6 @@ class _VolumeSearch(AnalysisBase):
             self.mode = mode
         else:
             print 'Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(valid_modes)
-            sys.exit(1)
-        # check that selection algebra for volume reference point is valid
-        tmpselect = self.u.select_atoms(self.vol_center)
-        if tmpselect.n_atoms == 0:
-            print 'Selection of for volume center point \"%s\" contains 0 atoms!\nFix the selection and try again. Exiting now...' % self.vol_center
             sys.exit(1)
 
     def _prepare(self):
@@ -455,7 +468,7 @@ class _VolumeSearch(AnalysisBase):
         # what to do at each frame
         print self._ts
         tmpoccupancy = []
-        tmpatoms = self.u.select_atoms('(%s %s) and (%s)' % (self.vol_shape, self.vol_center, self.search_selecttext))
+        tmpatoms = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext))
         for atom in tmpatoms:
             # store unique identifiers for found res/atoms
             if self.mode == 'res':
@@ -481,7 +494,7 @@ class _VolumeSearch(AnalysisBase):
             elif self.mode == 'atom':
                 tmp_name = '%s_%s_%s' % (str(elem[1]),str(elem[2]),str(elem[3]))
                 tmp_type = 'atom'
-                tmp_selecttext = 'segid %s and resid %d and name %s' % (str(elem[1]),str(elem[2]),str(elem[3]))
+                tmp_selecttext = 'segid %s and resid %s and name %s' % (str(elem[1]),str(elem[2]),str(elem[3]))
             self.selections.append((tmp_name,tmp_type,tmp_selecttext))
             self.selections_mask.append((tmp_name,'occupancy',tmp_selecttext))
         # build occupancy mask array
@@ -498,3 +511,45 @@ class _VolumeSearch(AnalysisBase):
                         self.mask[idxA,idxB] = 1
                     except IndexError:
                         pass
+
+class _WaterSearchZ(AnalysisBase):
+    """Similar to _VolumeSearch, but specific for water molecules and does not track
+    molecules through whole simulation. Instead, just saves the z-coordinate of each
+    water found in the search volume at each timestep."""
+
+    def __init__(self,vol_selecttext,universe):
+        self.vol_selecttext = vol_selecttext
+        self.search_selecttext = 'name OH2 and resname TIP3'
+        self.u = universe
+
+    def _prepare(self):
+        # setup vars and data structures
+        self.zcoords = []
+
+    def _single_frame(self):
+        # what to do at each frame
+        print self._ts
+        tmpcoordlist = []
+        tmpatoms = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext))
+        for atom in tmpatoms:
+            tmpcoordlist.append(atom.position[2])
+        self.zcoords.append(tmpcoordlist)
+
+    def _conclude(self):
+        # find the timestep with the most water
+        counts = np.zeros((len(self.zcoords)))
+        for idx,coordlist in enumerate(self.zcoords):
+            count = len(coordlist)
+            counts[idx] = count
+        # use that number to build array
+        dimensions = (int(np.amax(counts)),len(self.zcoords))
+        self.coordarray = np.empty(dimensions, dtype=float)
+        # fill it with nans
+        self.coordarray.fill(np.nan)
+        # now fill it with coordinates, leaving nan in the gaps
+        for idx1,coordlist in enumerate(self.zcoords):
+            for idx0,coord in enumerate(coordlist):
+                self.coordarray[idx0,idx1] = coord
+        # for consistency make this a list, though it will only ever have one item
+        self.selections = []
+        self.selections.append(('water_volume', 'z-coordinates', '(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext)))
