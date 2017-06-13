@@ -122,7 +122,8 @@ def timeseries(tgt_ax,datalist,time,datalabels=None,ylabel=None,xlabel='time (ns
 
 pore_vol_occupancy(ax1,plotname='Filter and pore occupancy',xlabel=None)
 
-timeseries(ax2,
+timeseries(
+           ax2,
            datalist=[basic['pore_width'][0,:]],
            time=basic['time'][0,:],
            datalabels=None,
@@ -132,7 +133,8 @@ timeseries(ax2,
            multicolor=False
            )
 
-timeseries(ax3,
+timeseries(
+           ax3,
            datalist=[wingA,wingB],
            time=basic['time'][0,:],
            datalabels=['subunit A','subunit B'],
@@ -142,7 +144,8 @@ timeseries(ax3,
            ylimits=[20,40]
            )
 
-timeseries(ax4,
+timeseries(
+           ax4,
            datalist=[basic['fenA'][0,:],basic['fenB'][0,:]],
            time=basic['time'][0,:],
            datalabels=['subunit A','subunit B'],
@@ -151,7 +154,8 @@ timeseries(ax4,
            ylimits=[4,16]
            )
 
-timeseries(ax5,
+timeseries(
+           ax5,
            datalist=[orientA,orientB],
            time=basic['time'][0,:],
            datalabels=['subunit A','subunit B'],

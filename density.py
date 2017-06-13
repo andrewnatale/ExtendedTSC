@@ -5,10 +5,12 @@ from MDAnalysis.analysis.density import density_from_Universe
 
 script,psf,dcd = sys.argv
 
+padding = 25.0
 u = md.Universe(psf,dcd)
+frames = u.trajectory.n_frames
 
 def taildensity():
-    D = density_from_Universe(u, delta=1.0, atomselection="\
+    D = density_from_Universe(u, delta=1.0, padding=padding, atomselection="\
       name C22 or name C23 or name C24 or name C25 or name C26 or\
       name C27 or name C28 or name C29 or name C210 or name C211 or\
       name C212 or name C213 or name C214 or name C215 or name C216 or\
@@ -18,17 +20,17 @@ def taildensity():
       name C312 or name C313 or name C314 or name C315 or name C316")
     #print D.grid
     print np.shape(D.grid)
-    print D.grid.sum()
-    D.grid = D.grid / D.grid.sum()
+    print np.amax(D.grid)
+    D.grid = D.grid / np.amax(D.grid)
     D.export('taildensity.dx')
 
 def phosdensity():
-    D = density_from_Universe(u, delta=1.0, atomselection="\
+    D = density_from_Universe(u, delta=1.0, padding=padding, atomselection="\
       resname POPC and name P")
     #print D.grid
     print np.shape(D.grid)
-    print D.grid.sum()
-    D.grid = D.grid / D.grid.sum()
+    print np.amax(D.grid)
+    D.grid = D.grid / np.amax(D.grid)
     D.export('phosdensity.dx')
 
 taildensity()

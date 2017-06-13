@@ -11,8 +11,7 @@
 
 import sys, os, math, datetime
 import numpy as np
-# tested with MDAnalysis-0.15.0
-# MDAnalysis-0.16.0 WILL NOT WORK WITH THIS SCRIPT due to a bug in topology processing
+# tested and working with MDAnalysis-0.16.1
 import MDAnalysis as md
 import MDAnalysis.core.Timeseries as tm
 from MDAnalysis.analysis.base import AnalysisBase
@@ -229,6 +228,7 @@ class ExtendedTSC(object):
     def _DCD_timeseries(self):
         collection = tm.TimeseriesCollection()
         # all the error checking should be done, so assume it's good and load it up
+
         for meas in self.primaryDS.measurements:
             if meas.type == 'atom':
                 collection.addTimeseries(tm.Atom('v', self.u.select_atoms(meas.selecttext)))
@@ -667,10 +667,11 @@ class _GenericTSC(AnalysisBase):
             elif meas.type == 'water_dipole':
                 # not implemented
                 pass
+
     def _conclude(self):
         pass
 
-class _ProcPDB(AnalysisBase):
+class _ProcPDB(object):
 
     def __init__(self):
         pass
