@@ -1,30 +1,32 @@
 # ExtendedTSC.py - a class to wrap and extend MDAnalysis' TimeseriesCollection module.
 # written by Andrew Natale
-# probably (definitely) only works on MacOS/Linux/Unix, python 2.7.x, MDAnalysis-0.15.0
+# probably (definitely) only works with MacOS/Linux/Unix, python 2.7.x, MDAnalysis-0.16.1
 # TODO:
 #   - allow loading of multiple traj files which form one continuous trajectory
 #   - squish bugs
-#   - move to MDAnalysis-0.16.1
-#   - implement an equivalent of TimeseriesCollection for non psf/dcd format trajectories
-#   - modularize for different filetypes
 #   - raise python errors instead of calling sys.exit()
+#   - implement rmsd calculations
+#   - update WaterSearch class to save all xyz
 
 import sys, os, math, datetime
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as md
 import MDAnalysis.core.Timeseries as tm
-from MDAnalysis.analysis.base import AnalysisBase
 
 class ExtendedTSC(object):
     """Class to wrap and extend MDAnalysis' TimeseriesCollection module."""
 
     # version info
-    version = '0.6.0'
+    version = '0.7.1'
 
     def __init__(self,datfile=None,maskfile=None):
-        """Sets up an ExtendedTSC object, either empty for making measurements
-        (takes no init args) or with the names of datfiles to be read."""
+        """Initialize ExtendedTSC and optionally load dat files.
+
+        Keyword arguments:
+        datfile - string; path to ExtendedTSC format dat file (non-mask)
+        maskfile - string; path to ExtendedTSC format dat file (mask)
+        """
 
         # collect some system data for keeping track of dat files
         self.data_datetime = datetime.datetime.now()
@@ -48,7 +50,18 @@ class ExtendedTSC(object):
             self.input_type = 'dat'
 
     def load_dcd(self,psffile,dcdfile,traj_stepsize=500,framerange=None):
-        """Loads psf topology and dcd trajectory files and initializes MDAnalysis."""
+        """Load psf topology and dcd trajectory files. For non dcd format
+            trajectories, use load_traj() method.
+
+        Arguments:
+        psffile - string; path to psf format topology file
+        dcdfile - string; path to dcd format trajectory file
+
+        Keyword arguments:
+        traj_stepsize - int; simulation time between frames of input trajectory
+        framerange - tuple; 3 integers (start, stop, and step) describing how to
+            slice the trajectory for analysis, default None == (0,-1,1)
+        """
 
         if self.input_type == None:
             self.toponame = os.path.abspath(psffile)
@@ -63,9 +76,17 @@ class ExtendedTSC(object):
             sys.exit(1)
 
     def load_traj(self,topofile,trajfile,traj_stepsize=500,framerange=None):
-        """Loads topology and trajectory files and initializes MDAnalysis.
-        This is a generic method which should work with any trajectory types
-        supported by MDAnalysis without extra options."""
+        """Load topology and trajectory files (any MDAnalysis supported types).
+
+        Arguments:
+        topofile - string; path to topology file
+        trajfile - string; path to trajectory file
+
+        Keyword arguments:
+        traj_stepsize - int; simulation time between frames of input trajectory
+        framerange - tuple; 3 integers (start, stop, and step) describing how to
+            slice the trajectory for analysis, default None == (0,-1,1)
+        """
 
         if self.input_type == None:
             self.toponame = os.path.abspath(topofile)
@@ -79,9 +100,13 @@ class ExtendedTSC(object):
             print 'Can only handle one trajectory or structure per instance! Exiting...'
             sys.exit(1)
 
-    def load_PBD(self,pdbfile):
-        """Loads a structure from a PDB file and initializes MDAnalysis.
-        PDBs are treated as though they are a trajectory with a single frame."""
+    def load_pdb(self,pdbfile):
+        """Load a structure from a PDB file. PDBs are treated as single-frame
+            trajectories.
+
+        Arguments:
+        pdbfile - string; path to pdb format file
+        """
 
         if self.input_type == None:
             self.pdbname = os.path.abspath(pdbfile)
@@ -93,21 +118,40 @@ class ExtendedTSC(object):
             sys.exit(1)
 
     def measures_from_list(self,selection_list):
-        """Loads selection definitions as a list of 3-element tuples: (name, type, selectext).
-        This method can be used alone or alongside measures_from_volumesearch to add reference
-        measurements to be made alongside the measurements defined by the volume search."""
+        """Load selection definitions. This method can be used alone or
+            alongside measures_from_volumesearch() to add reference measurements
+            to be made alongside the measurements defined by the volume search.
+
+        Arguments:
+        selection_list - list; a list of 3-string tuples of the form:
+            (name, type, selectext);
+            name is a identifier
+            type is a code recognized by the run() method
+            selecttext is an MDAnalysis format atom selector expression
+        """
 
         # setup primaryDS using selections from a list
         for descriptor in selection_list:
             self.primaryDS.add_measurement(descriptor)
 
     def measures_from_volumesearch(self,vol_selecttext,search_selecttext,mode='res'):
-        """Uses MDAnalysis to do an inital step through the trajectory to identify
-        all the atoms/residues that enter a defined volume region in any frame,
-        and build a list to measure their coordinates later.
-        Records at each timestep whether the atom/reside is present in the volume and saves this
-        info into a secondary mask _DataSet object which can be written to a file later.
+        """Step through a trajectory finding all the atoms/residues within a
+            defined volume and create a list for measuring their positions.
+            Populate a mask DataSet object with binary values for each found
+            entity at each timestep indicating its presence in search volume.
+
+        Arguments:
+        vol_selecttext - string; MDAnalysis geometric selection expression;
+            can be multiple volumes chained with and/or
+        search_selecttext - string; MDAnalysis atom selection expression;
+            defines the atom types to be searched for
+
+        Keyword arguments:
+        mode - string; either 'res' or 'atom'; format the resulting measurement
+            list to give coordinates for each found atom, or the center of mass
+            of found residues
         """
+
         # TODO: input type check, shouldn't process pdbfiles
         if self.framerange is None:
             searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u)
@@ -125,12 +169,9 @@ class ExtendedTSC(object):
         self.maskDS.add_collection(searcher.mask)
 
     def run(self):
-        # replace generate_timeseries with an input format agnostic method that calls on different timeseries creators
-        # and only needs to hand the output arrays
-        # step 1: init checks - on DataSet and measurements
-        # step 2: query traj format and choose method
-        # step 3: pass measuremnt list to a timeseries method and run
-        # step 4: format returned array into primaryDS
+        """Make measurements on a trajectory based on a loaded or generated
+            selection list, then poulate a DataSet object with the results.
+        """
 
         # check that the primary DataSet object has been properly initialized
         if not self.primaryDS:
@@ -151,7 +192,7 @@ class ExtendedTSC(object):
                 # however to keep things simpler downstream, enforce one atom selections here
                 if tmpselect.n_atoms != 1:
                     print 'Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
-                      % (mas.type, meas.selecttext, tmpselect.n_atoms)
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
                     sys.exit(1)
                 meas.set_width(3)
             elif meas.type == 'bond':
@@ -166,14 +207,14 @@ class ExtendedTSC(object):
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 4:
                     print 'Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
-                      % (mas.type, meas.selecttext, tmpselect.n_atoms)
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
                     sys.exit(1)
                 meas.set_width(1)
             elif meas.type == 'distance':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 2:
                     print 'Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
-                      % (mas.type, meas.selecttext, tmpselect.n_atoms)
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
                     sys.exit(1)
                 meas.set_width(1)
             elif meas.type == 'COG':
@@ -200,35 +241,21 @@ class ExtendedTSC(object):
         # check input data format and call the appropriate method to generate the array
         if self.input_type == 'dcd_traj':
             tmp_array = self._DCD_timeseries()
+        elif self.input_type == 'generic_traj':
+            tmp_array = self._generic_timeseries()
         elif self.input_type == 'pdb':
             tmp_array = self._generic_timeseries()
-        elif self.input_type == 'generic_traj':
-            tmp_array = self._PDB_measure()
         else:
             sys.exit(1)
         # process the array into a DataSet object
         self.primaryDS.add_collection(tmp_array)
-        # create an array of time values (in ps) for plotting and load it into datasets
-        starttime = self.framerange[0] * self.traj_stepsize
-        endtime = self.framerange[0] * self.traj_stepsize + self.traj_stepsize * self.framerange[2] * (np.shape(tmp_array)[1] - 1)
-        self.primaryDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=np.shape(tmp_array)[1]))
-        if self.maskDS.populated:
-            self.maskDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=np.shape(tmp_array)[1]))
-            # compare the maskDS data array to the time array and trim if needed (see NOTE above)
-            print 'primary',np.shape(self.primaryDS.data)[1], np.shape(self.primaryDS.time)[0]
-            print 'mask',np.shape(self.maskDS.data)[1], np.shape(self.maskDS.time)[0]
-            if (np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) == 1:
-                print 'trimming...'
-                self.maskDS.data = np.delete(self.maskDS.data, -1, axis=1)
-            elif ((np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) > 1) or \
-                 ((np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) < 0):
-                print 'Something is wrong, DataSet arrays do not match (probably a bug). Exiting...'
-                sys.exit(1)
+        self._setup_time()
 
     def _DCD_timeseries(self):
+        """Use TimeseriesCollection to make measurements (fast but DCD only)."""
+
         collection = tm.TimeseriesCollection()
         # all the error checking should be done, so assume it's good and load it up
-
         for meas in self.primaryDS.measurements:
             if meas.type == 'atom':
                 collection.addTimeseries(tm.Atom('v', self.u.select_atoms(meas.selecttext)))
@@ -252,11 +279,16 @@ class ExtendedTSC(object):
         # compute Timeseries from universe trajectory and return the resulting array
         # NOTE: There's a bug in MDAnalysis' fast DCD reader code that causes it to drop the last
         # frame it should measure when slicing the trajectory in any way (not the same bug as noted above in
-        # 'measures_from_volumesearch'). Haven't tracked it down so we just work around it.
-        collection.compute(self.u.trajectory, start=self.framerange[0], stop=self.framerange[1], step=self.framerange[2])
+        # 'measures_from_volumesearch'). Haven't tracked it down so we just work around it - ???still active in 0.16.1???
+        if self.framerange is None:
+            collection.compute(self.u.trajectory)
+        else:
+            collection.compute(self.u.trajectory, start=self.framerange[0], stop=self.framerange[1], step=self.framerange[2])
         return collection.data
 
     def _generic_timeseries(self):
+        """Use _GenericTSC to make measurements (non-DCD trajectories)."""
+
         if self.framerange is None:
             collection = _GenericTSC(self.primaryDS.measurements,self.u)
         else:
@@ -264,31 +296,65 @@ class ExtendedTSC(object):
         collection.run()
         return collection.data
 
-    def _PDB_measure(self):
-        collection = _ProcPDB(self.primaryDS.measurements)
-        collection.add_universe(self.u.trajectory)
-        collection.run()
-        return collection.data
+    def _setup_time(self):
+        """Format time values (in picoseconds) after loading DataSet objects."""
+
+        # create an array of time values (in ps) for plotting and load it into datasets
+        if self.input_type == 'pdb':
+            self.primaryDS.add_timesteps(np.array([0,]))
+        else:
+            if self.framerange is None:
+                firstframe = 0
+                framestep = 1
+            else:
+                firstframe = self.framerange[0]
+                framestep = self.framerange[2]
+            starttime = firstframe * self.traj_stepsize
+            n_steps = np.shape(self.primaryDS.data)[1]
+            endtime = firstframe * self.traj_stepsize + self.traj_stepsize * framestep * (n_steps - 1)
+            self.primaryDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=n_steps))
+            if self.maskDS.populated:
+                self.maskDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=n_steps))
+            # NOTE: old error checking code, probably not needed anymore
+            # compare the maskDS data array to the time array and trim if needed (see NOTE above)
+            # print 'primary',np.shape(self.primaryDS.data)[1], np.shape(self.primaryDS.time)[0]
+            # print 'mask',np.shape(self.maskDS.data)[1], np.shape(self.maskDS.time)[0]
+            # if (np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) == 1:
+            #     print 'trimming...'
+            #     self.maskDS.data = np.delete(self.maskDS.data, -1, axis=1)
+            # elif ((np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) > 1) or \
+            #      ((np.shape(self.maskDS.data)[1] - np.shape(self.maskDS.time)[0]) < 0):
+            #     print 'Something is wrong, DataSet arrays do not match (probably a bug). Exiting...'
+            #     sys.exit(1)
 
     def water_search(self,vol_selecttext):
+        """Save z-coordinates for all water molecules in a defined volume for
+            each frame, then populate a DataSet object with the results.
+
+        Arguments:
+        vol_selecttext - string; MDAnalysis geometric selection expression;
+            can be multiple volumes chained with and/or
+        """
 
         if self.framerange is None:
             searcher = _WaterSearchZ(vol_selecttext,self.u)
         else:
             searcher = _WaterSearchZ(vol_selecttext,self.u,start=self.framerange[0],stop=self.framerange[1],step=self.framerange[2])
-        print searcher.start,searcher.stop,searcher.step,searcher.n_frames
         searcher.run()
         # setup data set using search results
         for descriptor in searcher.selections:
             self.primaryDS.add_measurement(descriptor)
         self.primaryDS.add_collection(searcher.coordarray)
-        starttime = self.framerange[0] * self.traj_stepsize
-        endtime = self.framerange[0] * self.traj_stepsize + self.traj_stepsize * self.framerange[2] * (np.shape(searcher.coordarray)[1] - 1)
-        self.primaryDS.add_timesteps(np.linspace(float(starttime), float(endtime), num=np.shape(searcher.coordarray)[1]))
+        self._setup_time()
         self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
 
     def write_data(self,fileprefix):
-        """Writes data for all populated DataSets to .dat files in the cwd."""
+        """Writes data for all populated DataSets to .dat files in the cwd.
+
+        Arguments:
+        fileprefix - string; file names without extension (.dat or .mask.dat
+            will be appended automatically)
+        """
 
         if self.primaryDS.populated:
             self._data_writer(fileprefix+'.dat',self.primaryDS)
@@ -296,16 +362,16 @@ class ExtendedTSC(object):
             self._data_writer(fileprefix+'.mask.dat',self.maskDS,mask=True)
 
     def _data_writer(self,outfile,dataset,mask=False):
-        """Writes measurements to data file with the following format:
+        """Writes contents of a DataSet to a file with the following format:
 
         >header # starts the header selection, should be the first non-comment line in file
-        >hostname # system where the file was generated
+        >hostname # system hostname of machine where the file was generated
         >timestamp # time of file generation
         >toponame # OPTIONAL topology file used to generate measurements
         >trajname # OPTIONAL trajectory file(s) used to generate measurments
         >stepsize # OPTIONAL how long (in ps) is each timestep in trajectory
         >pdbname # OPTIONAL pdb file used to generate measurements
-        >mask # OPTIONAL is data an occupancy mask, needed for properly those datasets
+        >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
         >measure # name, type, and selection algebra defining a measurement
         >fields # 'time' and measure names/subnames as column headers
         >endheader # ends the header section
@@ -313,7 +379,15 @@ class ExtendedTSC(object):
         >end # marks end of file
 
         NOTE: There should be NO extraneous spaces in any names or entries,
-        reading these files depends on splitting on whitespace."""
+        reading these files depends on splitting on whitespace.
+
+        Arguments:
+        outfile - string; full output file name
+        dataset - DataSet object; target data to process
+
+        Keyword arguments:
+        mask - boolean; indicates whether the target data is a boolean mask
+        """
 
         with open(outfile, 'w') as datfile:
             # always write this metadata
@@ -329,8 +403,8 @@ class ExtendedTSC(object):
                 datfile.write('>stepsize(ps) %d\n' % self.traj_stepsize)
             if self.framerange:
                 datfile.write('>framerange %d %d %d (start, stop, skip)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
-            # if self.pdbname:
-            #     datfile.write('>pdbname %d\n' % self.pdbname)
+            if self.pdbname:
+                datfile.write('>pdbname %s\n' % self.pdbname)
             # obligatory fields
             if mask:
                 datfile.write('>mask True\n')
@@ -368,8 +442,11 @@ class ExtendedTSC(object):
             datfile.write('>end')
 
     def _data_reader(self,infile):
-        """Rebuilds array from previously generated measurements in a .dat file.
-        Should only be called through __init__ and does not use TimeseriesCollection or MDAnalysis at all."""
+        """Rebuild DataSet from saved measurements in a .dat file.
+
+        Arguments:
+        infile - string; name of file to read
+        """
 
         # open and read input file
         with open(infile, 'r') as datfile:
@@ -455,12 +532,12 @@ class ExtendedTSC(object):
         targetDS.add_collection(np.array(tmplist).T)
 
 # Auxilary classes called by ExtendedTSC
-# These hould not be instantiated directly in scripts!
+# These should not be instantiated directly in scripts!
 
 class _Measurement(object):
-    """A class to hold a single TimeseriesCollection measurement set and metadata."""
+    """A class to hold a single measurement and keep track of its description and data."""
 
-    def __init__(self, descriptor, width=0):
+    def __init__(self, descriptor, width):
         self.name, self.type, self.selecttext = descriptor
         self.set_width(width)
         self.series = None
@@ -475,7 +552,7 @@ class _Measurement(object):
         self.series = array
 
 class _DataSet(object):
-    """A class to organize a set of measurements generated together."""
+    """A class to organize a set of measurements generated together on one pass through a trajectory."""
 
     def __init__(self):
         self.measurements = []
@@ -531,6 +608,7 @@ class _VolumeSearch(AnalysisBase):
 
     def _prepare(self):
         # setup vars and data structures
+        self.vol_group = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext), updating=True)
         self.selection_set = set()
         self.masking_list = []
 
@@ -538,8 +616,7 @@ class _VolumeSearch(AnalysisBase):
         # what to do at each frame
         print self._ts
         tmpoccupancy = []
-        tmpatoms = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext))
-        for atom in tmpatoms:
+        for atom in self.vol_group:
             # store unique identifiers for found res/atoms
             if self.mode == 'res':
                 self.selection_set.add((atom.segid,atom.resid))
@@ -598,13 +675,13 @@ class _WaterSearchZ(AnalysisBase):
     def _prepare(self):
         # setup vars and data structures
         self.zcoords = []
+        self.vol_group = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext), updating=True)
 
     def _single_frame(self):
         # what to do at each frame
         print self._ts
         tmpcoordlist = []
-        tmpatoms = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext))
-        for atom in tmpatoms:
+        for atom in self.vol_group:
             tmpcoordlist.append(atom.position[2])
         self.zcoords.append(tmpcoordlist)
 
@@ -628,6 +705,9 @@ class _WaterSearchZ(AnalysisBase):
         self.selections.append(('water_volume', 'z-coordinates', '(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext)))
 
 class _GenericTSC(AnalysisBase):
+    """Measures a variety of properties on a single pass through a trajectory.
+        Similar to TimeseriesCollection, though with a different interface.
+    """
 
     def __init__(self,measurements,universe,**kwargs):
         super(_GenericTSC,self).__init__(universe.trajectory,**kwargs)
@@ -635,21 +715,28 @@ class _GenericTSC(AnalysisBase):
         self.u = universe
 
     def _prepare(self):
+        self.atomgroups = {}
+        self.coordinates = {}
         total_width = 0
-        # get array dimensions
+        # setup empty arrays
         for meas in self.target_measurements:
             total_width += meas.width
+            self.atomgroups[meas.name] = self.u.select_atoms(meas.selecttext)
+            self.coordinates[meas.name] = np.empty((self.atomgroups[meas.name].n_atoms * 3, self.n_frames), dtype=float)
         self.data = np.empty((total_width,self.n_frames), dtype=float)
 
     def _single_frame(self):
-        print self._ts
-        start_idx = 0
+        #print self._ts
+        for key in self.atomgroups:
+            self.coordinates[key][:,self._frame_index] = np.concatenate([atom.position for atom in self.atomgroups[key]], axis=0)
+
+    def _conclude(self):
+        start_meas_idx = 0
         for meas in self.target_measurements:
-            tmpgroup = self.u.select_atoms(meas.selecttext)
-            tmpwidth = meas.width
-            # figure out what property is needed based on type
+            end_meas_idx = start_meas_idx + meas.width
             if meas.type == 'atom':
-                tmpselect= self.u.select_atoms(meas.selecttext)
+                # just load the coordinates
+                self.data[start_meas_idx:end_meas_idx,:] = self.coordinates[meas.name]
             elif meas.type == 'bond':
                 # not implemented
                 pass
@@ -657,21 +744,53 @@ class _GenericTSC(AnalysisBase):
                 # not implemented
                 pass
             elif meas.type == 'dihedral':
-                collection.addTimeseries(tm.Dihedral(self.u.select_atoms(meas.selecttext)))
+                self.data[start_meas_idx:end_meas_idx,:] = self._dihedral(self.coordinates[meas.name])
             elif meas.type == 'distance':
-                collection.addTimeseries(tm.Distance('r', self.u.select_atoms(meas.selecttext)))
+                self.data[start_meas_idx:end_meas_idx,:] = self._distance(self.coordinates[meas.name])
             elif meas.type == 'COG':
-                collection.addTimeseries(tm.CenterOfGeometry(self.u.select_atoms(meas.selecttext)))
+                count = self.atomgroups[meas.name].n_atoms
+                self.data[start_meas_idx:end_meas_idx,:] = self._center_of_geometry(count, self.coordinates[meas.name])
             elif meas.type == 'COM':
-                collection.addTimeseries(tm.CenterOfMass(self.u.select_atoms(meas.selecttext)))
+                count = self.atomgroups[meas.name].n_atoms
+                weights = [atom.mass for atom in self.atomgroups[meas.name]]
+                self.data[start_meas_idx:end_meas_idx,:] = self._center_of_mass(count, self.coordinates[meas.name], weights)
             elif meas.type == 'water_dipole':
                 # not implemented
                 pass
+            start_meas_idx += meas.width
 
-    def _conclude(self):
-        pass
+    def _dihedral(self, array):
+        # expect to get 4 points
+        p1 = array[0:3,:]
+        p2 = array[3:6,:]
+        p3 = array[6:9,:]
+        p4 = array[9:,:]
+        segA = p2 - p1
+        segB = p3 - p2
+        segC = p4 - p3
+        AxB = np.cross(segA, segB, axisa=0, axisb=0, axisc=0)
+        BxC = np.cross(segB, segC, axisa=0, axisb=0, axisc=0)
+        n1 = AxB / np.linalg.norm(AxB, axis=0)
+        n2 = BxC / np.linalg.norm(BxC, axis=0)
+        x = np.sum(n1 * n2, axis=0)
+        y = np.sum(np.cross(n1, segB / np.linalg.norm(segB, axis=0), axisa=0, axisb=0, axisc=0) * n2, axis=0)
+        # flip the sign to get the same thing TimeseriesCollection gets ???
+        return np.arctan2(y,x) * -1.0
 
-class _ProcPDB(object):
+    def _distance(self, array):
+        # expect to get 2 points
+        p1 = array[0:3,:]
+        p2 = array[3:,:]
+        return np.linalg.norm(p1-p2, axis=0)
 
-    def __init__(self):
-        pass
+    def _center_of_geometry(self, count, array):
+        cog = array[0:3,:]
+        for i in range(1,count,1):
+            cog += array[i*3:(i*3)+3,:]
+        return cog / float(count)
+
+    def _center_of_mass(self, count, array, weights):
+        com = array[0:3,:] * weights[0]
+        for i in range(1,count,1):
+            com += array[i*3:(i*3)+3,:] * weights[i]
+        return com / float(np.sum(weights))

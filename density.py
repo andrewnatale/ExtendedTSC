@@ -68,7 +68,7 @@ def phosdensity(universe, outdir, outtag):
 
     D.export(os.path.join(outdir,'phosdensity_%s.dx' % outtag))
 
-for pair in filepairs:
+for pair in filepairs+filepairsTM4:
     u = md.Universe(pair[0],pair[1])
     outdir = os.path.dirname(pair[0])
     taildensity(u,outdir,outtag)

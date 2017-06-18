@@ -100,17 +100,17 @@ os.chdir(outdir)
 
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
-    a.load_traj(pair[0],pair[1])
+    a.load_dcd(pair[0],pair[1])
     a.measures_from_list(selections)
-    a.generate_timeseries()
+    a.run()
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
     a.write_data(output)
 
 if filepairsTM4:
     for pair in filepairsTM4:
         a = ExtendedTSC.ExtendedTSC()
-        a.load_traj(pair[0],pair[1])
+        a.load_dcd(pair[0],pair[1])
         a.measures_from_list(selections_traakTM4)
-        a.generate_timeseries()
+        a.run()
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
         a.write_data(output)

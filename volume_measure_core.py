@@ -81,14 +81,14 @@ os.chdir(outdir)
 
 for pair in filepairs:
     a = ExtendedTSC.ExtendedTSC()
-    a.load_traj(pair[0],pair[1])
+    a.load_dcd(pair[0],pair[1])
     a.measures_from_list(ref_selections)
     a.measures_from_volumesearch(vol_selecttext,search_selectext,mode='atom')
-    a.generate_timeseries()
+    a.run()
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
     a.write_data(output)
     b = ExtendedTSC.ExtendedTSC()
-    b.load_traj(pair[0],pair[1])
+    b.load_dcd(pair[0],pair[1])
     b.water_search(vol_selecttext)
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag + '.' + 'tip3'
     b.write_data(output)
@@ -99,11 +99,11 @@ if filepairsTM4:
         a.load_traj(pair[0],pair[1])
         a.measures_from_list(ref_selections_traakTM4)
         a.measures_from_volumesearch(vol_selecttext_traakTM4,search_selectext,mode='atom')
-        a.generate_timeseries()
+        a.run()
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
         a.write_data(output)
         b = ExtendedTSC.ExtendedTSC()
-        b.load_traj(pair[0],pair[1])
+        b.load_dcd(pair[0],pair[1])
         b.water_search(vol_selecttext_traakTM4)
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag + '.' + 'tip3'
         b.write_data(output)
