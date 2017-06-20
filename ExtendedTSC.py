@@ -13,6 +13,7 @@ import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as md
 import MDAnalysis.core.Timeseries as tm
+from MDAnalysis.analysis.base import AnalysisBase
 
 class ExtendedTSC(object):
     """Class to wrap and extend MDAnalysis' TimeseriesCollection module."""
@@ -348,6 +349,9 @@ class ExtendedTSC(object):
         self._setup_time()
         self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
 
+    def rmsd_timeseries(self):
+        pass
+
     def write_data(self,fileprefix):
         """Writes data for all populated DataSets to .dat files in the cwd.
 
@@ -576,7 +580,8 @@ class _DataSet(object):
         self.time = array
 
     def simplify_indexing(self,return_dict=True):
-        """Links _Measurement objects to the data array and (optinally) returns a dict for lookup by measurement name.
+        """Links _Measurement objects to the data array and (optionally) returns
+        a dict for lookup by measurement name.
         Doesn't add or change any data, just makes access a bit simpler."""
 
         idx = 0

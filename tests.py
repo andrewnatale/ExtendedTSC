@@ -1,20 +1,15 @@
 import sys, os, math, re
 import numpy as np
-import ExtendedTSC
-import MDAnalysis as md
+# import ExtendedTSC
+# import MDAnalysis as md
 
-psf = '/Users/anatale/school/UCSF/Grabe_Lab/data/traakWT_full_trimmed/topo.traakWT_full_npt.psf'
-dcd = '/Users/anatale/school/UCSF/Grabe_Lab/data/traakWT_full_trimmed/traakWT_full.new_align.500ps.dcd'
-pdb1 = '/Users/anatale/school/UCSF/Grabe_Lab/TRAAKwt_4i9w.pdb'
-pdb2 = '/Users/anatale/school/UCSF/Grabe_Lab/G124I_4rue.pdb'
+import matplotlib.pyplot as plt
 
-test = ExtendedTSC.ExtendedTSC()
+x = np.array([1.,2,3,4,5])
+y = np.array([1.,2,3,4,5])
+s = np.array([0.1,0.2,0.4,0.8,1.6])
 
-# test.load_dcd(psf,dcd)
-test.load_pdb(pdb1)
-test.measures_from_list([('test', 'COM', 'protein and (name CA or name N)'),
-                         ('test2', 'distance', 'segid A and (resid 117 or resid 259) and name CA'),
-                         ('test3', 'dihedral', 'segid A and resid 262 and (name N or name CA or name CB or name CG)')])
-test.run()
-print test.primaryDS.data
-test.write_data('testA')
+f,ax = plt.subplots()
+ax.plot(x,y,c='black',lw=3)
+ax.fill_between(x,y+s,y-s,facecolor='gold')
+plt.show()
