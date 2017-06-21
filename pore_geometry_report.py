@@ -3,7 +3,8 @@ import numpy as np
 from itertools import cycle
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-import ExtendedTSC_old
+#import ExtendedTSC_old
+from TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -12,10 +13,10 @@ reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traak
 report_name = reports[rep_idx]
 
 # load data sets
-a = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('pore_geo', report_name+'.pore_geo.dat'))
+a = TimeseriesCore(datfile=os.path.join('pore_geo', report_name+'.pore_geo.dat'))
 #b = ExtendedTSC.ExtendedTSC(datfile=os.path.join('pore_geo', reports[1]+'.pore_geo.dat'))
-c = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
-d = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+c = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
+d = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 
 # make data sets indexable
 wt = a.primaryDS.simplify_indexing(return_dict=True)
@@ -25,7 +26,7 @@ kmask = c.maskDS.simplify_indexing(return_dict=True)
 tip3z = d.primaryDS.simplify_indexing(return_dict=True)
 
 # reference z=0
-zref = np.reshape(np.copy(klipids['S4bottom'][2,:]), (1,-1))
+#zref = np.reshape(np.copy(klipids['S4bottom'][2,:]), (1,-1))
 # for each sf carbonyl ~plane, calculate area and avg z-displacement
 names = {
 'D':['a_129og1','a_238og1','b_129og1','b_238og1'],
@@ -35,20 +36,34 @@ names = {
 'H':['a_132o','a_241o','b_132o','b_241o'],
 'I':['a_133o','a_242o','b_133o','b_242o']
 }
+
+zref = None
+count = 0
+for key in names:
+    for elem in names[key]:
+        if zref is None:
+            zref = wt[elem][2,:]
+        else:
+            zref = zref + wt[elem][2,:]
+        count += 1
+zref = np.reshape((zref / float(count))-1.5, (1,-1))
+
+print zref
 zcoords = {}
 area = {}
 # avg 4-carbonyl z-coord
 for key in names:
     print key,names[key]
     zcoords[key] = (wt[names[key][0]][2,:]+wt[names[key][1]][2,:]+wt[names[key][2]][2,:]+wt[names[key][3]][2,:])/4 - zref[0,:]
+    #zcoords[key] = (wt[names[key][0]][2,:]+wt[names[key][1]][2,:]+wt[names[key][2]][2,:]+wt[names[key][3]][2,:])/4
 
     area[key] = (np.linalg.norm(np.cross(wt[names[key][0]]-wt[names[key][1]], wt[names[key][2]]-wt[names[key][1]], axisa=0,axisb=0,axisc=0), axis=0)
                 +np.linalg.norm(np.cross(wt[names[key][0]]-wt[names[key][3]], wt[names[key][2]]-wt[names[key][3]], axisa=0,axisb=0,axisc=0), axis=0)
                 +np.linalg.norm(np.cross(wt[names[key][1]]-wt[names[key][0]], wt[names[key][3]]-wt[names[key][0]], axisa=0,axisb=0,axisc=0), axis=0)
                 +np.linalg.norm(np.cross(wt[names[key][1]]-wt[names[key][2]], wt[names[key][3]]-wt[names[key][2]], axisa=0,axisb=0,axisc=0), axis=0)
                 )/2.0
-    area[key] = area[key] - 16.0
-    area[key] = area[key]/16.0
+    area[key] = area[key]
+    area[key] = area[key]/40.0
 
 for key in names:
     print key
@@ -69,8 +84,8 @@ ax.plot(reshapetime, zcoords['G'], c='black', lw=1)
 ax.fill_between(reshapetime, zcoords['G']-area['G'], zcoords['G']+area['G'], facecolor='green', alpha=0.5)
 ax.plot(reshapetime, zcoords['H'], c='black', lw=1)
 ax.fill_between(reshapetime, zcoords['H']-area['H'], zcoords['H']+area['H'], facecolor='green', alpha=0.5)
-# ax.plot(reshapetime, zcoords['I'], c='black', lw=1)
-# ax.fill_between(reshapetime, zcoords['I']-area['I'], zcoords['I']+area['I'], facecolor='green', alpha=0.5)
+ax.plot(reshapetime, zcoords['I'], c='black', lw=1)
+ax.fill_between(reshapetime, zcoords['I']-area['I'], zcoords['I']+area['I'], facecolor='palevioletred', alpha=0.3)
 
 # setup colors for different entities
 Kcolors = ['violet','silver','tomato','blue','blueviolet','palevioletred', 'orange']
@@ -84,6 +99,7 @@ for key in klipids:
     if find_K.search(key):
         kzcoords = np.reshape(np.copy(klipids[key][2,:]), (1,-1))
         kzcoords = kzcoords - zref
+        #kzcoords = kzcoords
         boolmask = kmask[key].astype(bool)
         masked_kzcoords = kzcoords[boolmask]
         masked_time = klipids['time'][boolmask] / 1000.0
@@ -93,10 +109,11 @@ for idx,time in np.ndenumerate(tip3z['time']):
     waters = tip3z['water_volume'][:,idx[1]]
     waters = waters[~np.isnan(waters)]
     waters = waters - zref[idx]
+    #waters = waters
     timeblob = np.empty_like(waters)
     timeblob.fill(time/1000.0)
     ax.plot(timeblob, waters, c=watercolor, zorder=3, marker='o', mew=0.0, ms=3, linestyle="None")
 # limits and labels
 ax.set_xlim([klipids['time'][0,0]/1000.0, klipids['time'][0,-1]/1000.0])
-ax.set_ylim([-2,16])
+ax.set_ylim([-8.5,9.5])
 plt.show()

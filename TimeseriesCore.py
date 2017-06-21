@@ -38,7 +38,7 @@ class TimeseriesCore(object):
             if maskfile:
                 self._data_reader(maskfile)
                 self.input_type = 'dat'
-            self._datasets_to_dicts()
+            #self._datasets_to_dicts()
         else:
             self._collect_sys_info()
 
@@ -89,9 +89,9 @@ class TimeseriesCore(object):
     dictionaries based on measurement names"""
 
         if self.primaryDS.populated:
-            self.primary = self.primaryDS._simplify_indexing()
+            self.primary = self.primaryDS.simplify_indexing()
         if self.maskDS.populated:
-            self.mask = self.primaryDS._simplify_indexing()
+            self.mask = self.primaryDS.simplify_indexing()
 
     def _data_writer(self,dataset,outfile=None,mask=False):
         """Writes contents of a DataSet to a file with the following format:
