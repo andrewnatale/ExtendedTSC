@@ -1,15 +1,13 @@
 import sys, os, math, re
 import numpy as np
-# import ExtendedTSC
-# import MDAnalysis as md
+from ExtendedTSC import ExtendedTSC
 
-import matplotlib.pyplot as plt
-
-x = np.array([1.,2,3,4,5])
-y = np.array([1.,2,3,4,5])
-s = np.array([0.1,0.2,0.4,0.8,1.6])
-
-f,ax = plt.subplots()
-ax.plot(x,y,c='black',lw=3)
-ax.fill_between(x,y+s,y-s,facecolor='gold')
-plt.show()
+a = ExtendedTSC()
+a.load_pdb('/Users/anatale/school/UCSF/Grabe_Lab/data/pdbs/G124I_4rue.pdb')
+test_sel = [
+('S1top',      'COG',      'protein and (resid 132 or resid 241) and name O'),
+('S4bottom',   'COG',      'protein and (resid 129 or resid 238) and name OG1')
+]
+a.measures_from_list(test_sel)
+a.run()
+a._data_writer(a.primaryDS)

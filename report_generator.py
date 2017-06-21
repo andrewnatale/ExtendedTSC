@@ -20,9 +20,12 @@ mask = b.maskDS.simplify_indexing(return_dict=True)
 waterZ = bw.primaryDS.simplify_indexing(return_dict=True)
 
 # choose reference lines
-ref_idx = int(sys.argv[2])
 use_ref = ['TRAAK','TREK2']
-ref_name = use_ref[ref_idx]
+try:
+    ref_idx = int(sys.argv[2])
+    ref_name = use_ref[ref_idx]
+else:
+    ref_name = None
 # load pdb reference measurements
 references = ['TRAAKwt_4i9w','G124I_4rue','W262S_4ruf','TREK2_down_4xdj_AB','TREK2_down_4xdj_CD','TREK2_up_4bw5_AB','TREK2_up_4bw5_CD']
 ref_data = []

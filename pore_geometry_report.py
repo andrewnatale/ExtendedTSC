@@ -3,19 +3,19 @@ import numpy as np
 from itertools import cycle
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-import ExtendedTSC
+import ExtendedTSC_old
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-#reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
-reports = ['traakWT_full','traakG124I_full']
+reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
+#reports = ['traakWT_full','traakG124I_full']
 report_name = reports[rep_idx]
 
 # load data sets
-a = ExtendedTSC.ExtendedTSC(datfile=os.path.join('pore_geo', report_name+'.pore_geo.dat'))
+a = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('pore_geo', report_name+'.pore_geo.dat'))
 #b = ExtendedTSC.ExtendedTSC(datfile=os.path.join('pore_geo', reports[1]+'.pore_geo.dat'))
-c = ExtendedTSC.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
-d = ExtendedTSC.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+c = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
+d = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 
 # make data sets indexable
 wt = a.primaryDS.simplify_indexing(return_dict=True)
@@ -90,7 +90,6 @@ for key in klipids:
         ax.plot(masked_time, masked_kzcoords, c=Kcolor(), zorder=4, marker='o', mew=0.2, linestyle='None')
 # water oxygen atoms, all the same color
 for idx,time in np.ndenumerate(tip3z['time']):
-    print 'working'
     waters = tip3z['water_volume'][:,idx[1]]
     waters = waters[~np.isnan(waters)]
     waters = waters - zref[idx]
