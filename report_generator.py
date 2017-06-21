@@ -3,16 +3,16 @@ import numpy as np
 from itertools import cycle
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-import ExtendedTSC
+import ExtendedTSC_old
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
 reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
 report_name = reports[rep_idx]
 # load data sets
-a = ExtendedTSC.ExtendedTSC(datfile=os.path.join('basic_meas', report_name+'.basic.dat'))
-b = ExtendedTSC.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
-bw = ExtendedTSC.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+a = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('basic_meas', report_name+'.basic.dat'))
+b = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
+bw = ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 # make data sets indexable
 basic = a.primaryDS.simplify_indexing(return_dict=True)
 klipid = b.primaryDS.simplify_indexing(return_dict=True)
@@ -24,13 +24,13 @@ use_ref = ['TRAAK','TREK2']
 try:
     ref_idx = int(sys.argv[2])
     ref_name = use_ref[ref_idx]
-else:
+except:
     ref_name = None
 # load pdb reference measurements
 references = ['TRAAKwt_4i9w','G124I_4rue','W262S_4ruf','TREK2_down_4xdj_AB','TREK2_down_4xdj_CD','TREK2_up_4bw5_AB','TREK2_up_4bw5_CD']
 ref_data = []
 for ref in references:
-    ref_data.append(ExtendedTSC.ExtendedTSC(datfile=os.path.join('pdb_ref',ref+'.pdb_ref.dat')))
+    ref_data.append(ExtendedTSC_old.ExtendedTSC(datfile=os.path.join('pdb_ref',ref+'.pdb_ref.dat')))
 
 # do some vector math to setup
 # calc unit vector through the selectivity filter, SFunitV

@@ -1,6 +1,6 @@
 import sys, os, math
 import numpy as np
-import ExtendedTSC
+from ExtendedTSC import ExtendedTSC
 
 # topology and trajectory files
 try:
@@ -99,7 +99,7 @@ selections_traakTM4 = [
 os.chdir(outdir)
 
 for pair in filepairs:
-    a = ExtendedTSC.ExtendedTSC()
+    a = ExtendedTSC()
     a.load_dcd(pair[0],pair[1])
     a.measures_from_list(selections)
     a.run()
@@ -108,7 +108,7 @@ for pair in filepairs:
 
 if filepairsTM4:
     for pair in filepairsTM4:
-        a = ExtendedTSC.ExtendedTSC()
+        a = ExtendedTSC()
         a.load_dcd(pair[0],pair[1])
         a.measures_from_list(selections_traakTM4)
         a.run()

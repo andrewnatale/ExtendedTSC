@@ -1,6 +1,7 @@
 import sys, os, math
 import numpy as np
-import ExtendedTSC
+from ExtendedTSC import ExtendedTSC
+from WaterSearch import WaterSearch
 
 # topology and trajectory files
 try:
@@ -80,14 +81,14 @@ vol_selecttext_traakTM4 = '(cyzone 4 16 0 (protein and (resid 102 or resid 384 o
 os.chdir(outdir)
 
 for pair in filepairs:
-    a = ExtendedTSC.ExtendedTSC()
+    a = ExtendedTSC()
     a.load_dcd(pair[0],pair[1])
     a.measures_from_list(ref_selections)
     a.measures_from_volumesearch(vol_selecttext,search_selectext,mode='atom')
     a.run()
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
     a.write_data(output)
-    b = ExtendedTSC.ExtendedTSC()
+    b = WaterSearch()
     b.load_dcd(pair[0],pair[1])
     b.water_search(vol_selecttext)
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag + '.' + 'tip3'
@@ -102,7 +103,7 @@ if filepairsTM4:
         a.run()
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
         a.write_data(output)
-        b = ExtendedTSC.ExtendedTSC()
+        b = WaterSearch()
         b.load_dcd(pair[0],pair[1])
         b.water_search(vol_selecttext_traakTM4)
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag + '.' + 'tip3'

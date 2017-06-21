@@ -1,6 +1,6 @@
 import sys, os, math
 import numpy as np
-import ExtendedTSC
+from ExtendedTSC import ExtendedTSC
 
 input_prefix = '/Users/anatale/school/UCSF/Grabe_Lab/data'
 
@@ -93,7 +93,7 @@ os.path.join(input_prefix, 'pdbs/TREK2_up_4bw5_CD.pdb'): trek2_measuresCD[0:2]+t
 os.chdir(outdir)
 
 for key in meas_dict:
-    a = ExtendedTSC.ExtendedTSC()
+    a = ExtendedTSC()
     a.load_pdb(key)
     a.measures_from_list(meas_dict[key])
     a.run()
