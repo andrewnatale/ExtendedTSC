@@ -22,7 +22,7 @@ outtag = 'bin'+str(delta)
 if psffile and dcdfile:
     print 'Using inputs specified from command line'
     filepairs = [(os.path.abspath(psffile), os.path.abspath(dcdfile))]
-    filepairsTM4 = None
+    filepairsTM4 = []
 else:
     # hardcode filenames for batch process
     filepairs = [
