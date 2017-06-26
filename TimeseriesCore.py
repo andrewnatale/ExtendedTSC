@@ -1,5 +1,4 @@
 import sys, os, datetime
-#from fs.osfs import OSFS
 import numpy as np
 
 class TimeseriesCore(object):
@@ -65,24 +64,43 @@ class TimeseriesCore(object):
 
         # load specified files into lists of DataSet objects
         dats = []
-        masks = None
+        masks = []
         for filename in datlist:
             dats.append(self._data_reader(filename, False))
         if masklist:
-            masks = []
             for filename in masklist:
                 masks.append(self._data_reader(filename, True))
-        # error checking
+        # mandatory checks, compare all DataSets to the first one. NOTE: needs work!
+        test_stride = dats[0].framerange[2]
+        test_width = dats[0].get_width()
+        first_frame = dats[0].framerange[0]
+        last_frame = dats[0].framerange[1]
+        for elem in dats[1:]:
+            if (elem.framerange[2] != test_stride) or (elem.get_width() != test_width):
+                self.logger.exit('Failed to merge DataSets due to shape mismatch! Exiting...')
+            if (last_frame+1 != elem.framerange[0]):
+                self.logger.msg('Warning! Apparent overlap or missing frames during merge!')
+            last_frame = elem.framerange[1]
         if strict_checking:
             # chacks to implement:
             # topo/traj name matching
             # same features
             pass
-        # mandatory checks
-        for elem in dats:
-            print elem.get_width(),elem.get_length()
-            print elem.get_starttime(), elem.get_endtime()
-            print elem.traj_stepsize
+        # init new DataSet objects for merge
+        self._init_datasets()
+        self.primaryDS._copy_metadata(dats[0])
+        self.primaryDS.framerange = (first_frame, last_frame, test_stride)
+        for meas in dats[0].measurements:
+            self.primaryDS.add_measurement((meas.name, meas.type, meas.selecttext), meas.width)
+        self.primaryDS.add_collection(np.concatenate([i.data for i in dats], axis=1))
+        self.primaryDS.add_timesteps(np.concatenate([i.time for i in dats], axis=0))
+        if masklist:
+            self.maskDS = DataSet()
+            self.maskDS._copy_metadata(self.primaryDS)
+            for meas in masks[0].measurements:
+                self.maskDS.add_measurement((meas.name, meas.type, meas.selecttext), meas.width)
+            self.maskDS.add_collection(np.concatenate([i.data for i in masks], axis=1))
+            self.maskDS.add_timesteps(np.concatenate([i.time for i in masks], axis=0))
 
     def merge_along_features(self, datlist, checking='permissive'):
         """Load a list of datasets that cover the same time window of a trajectory and merge them
@@ -90,8 +108,8 @@ class TimeseriesCore(object):
         pass
 
     def _init_datasets(self):
-        """Setup empty default DataSet objects. Subclasses should use these rather than customizing
-    unless there is a good reason to do so."""
+        """Setup empty default DataSet objects. Subclasses should use these unless there is a good
+    reason to customize."""
 
         self.primaryDS = DataSet()
         self.primaryDS.data_datetime = datetime.datetime.now()

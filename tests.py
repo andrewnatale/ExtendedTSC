@@ -34,7 +34,9 @@ def test_merge():
 
     c = TimeseriesCore()
     c.merge_along_time(datfiles)
+    print c.primaryDS.__dict__
+    c._data_writer(c.primaryDS)
 
-test_etsc()
+#test_etsc()
 #test_core()
-#test_merge()
+test_merge()
