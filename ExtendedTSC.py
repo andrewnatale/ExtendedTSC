@@ -1,10 +1,10 @@
 import numpy as np
-from TrajInit import TrajInit
+from TrajProcessor import TrajProcessor
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis.core.Timeseries as tm
 from MDAnalysis.analysis.base import AnalysisBase
 
-class ExtendedTSC(TrajInit):
+class ExtendedTSC(TrajProcessor):
     """Wrap and extend MDAnalysis' TimeseriesCollection module."""
 
     def measures_from_list(self,selection_list):
@@ -41,10 +41,11 @@ class ExtendedTSC(TrajInit):
     """
 
         # TODO: input type check, shouldn't process pdbfiles
-        if self.framerange is None:
+        self.maskDS._copy_metadata(self.primaryDS)
+        if self.primaryDS.framerange is None:
             searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u)
         else:
-            searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u,start=self.framerange[0],stop=self.framerange[1],step=self.framerange[2])
+            searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
         print searcher.start,searcher.stop,searcher.step,searcher.n_frames
         searcher.run()
         # setup data sets using search results
@@ -55,6 +56,7 @@ class ExtendedTSC(TrajInit):
             self.maskDS.add_measurement(descriptor,width=1)
         # load the masking data from the search
         self.maskDS.add_collection(searcher.mask)
+        self.maskDS._setup_timesteps()
 
     def run(self):
         """Make measurements on a trajectory based on a loaded or generated selection list, then
@@ -62,14 +64,11 @@ class ExtendedTSC(TrajInit):
 
         # check that the primary DataSet object has been properly initialized
         if not self.primaryDS:
-            print 'DataSet not properly initialized! Exiting...'
-            sys.exit(1)
+            self.logger.err('DataSet not properly initialized! Exiting...')
         elif self.primaryDS.count_measurements() == 0:
-            print 'No measurement descriptors found in DataSet. Exiting...'
-            sys.exit(1)
+            self.logger.err('No measurement descriptors found in DataSet. Exiting...')
         elif self.primaryDS.populated is True:
-            print 'DataSet object already contains an array, cannot generate another! Exiting...'
-            sys.exit(1)
+            self.logger.err('DataSet object already contains an array, cannot generate another! Exiting...')
         # check that measurement objects behave as expected on the input topology, and set measure widths
         for meas in self.primaryDS.measurements:
             if meas.type == 'atom':
@@ -78,53 +77,44 @@ class ExtendedTSC(TrajInit):
                 # in an 'atom' selection - it just measures coordinates for all of them
                 # however to keep things simpler downstream, enforce one atom selections here
                 if tmpselect.n_atoms != 1:
-                    print 'Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
-                    sys.exit(1)
+                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(3)
             elif meas.type == 'bond':
                 # not implemented
-                print 'measurement type %s not implemented, exiting' % meas.type
-                sys.exit(1)
+                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
             elif meas.type == 'angle':
                 # not implemented
-                print 'measurement type %s not implemented, exiting' % meas.type
-                sys.exit(1)
+                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
             elif meas.type == 'dihedral':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 4:
-                    print 'Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
-                    sys.exit(1)
+                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(1)
             elif meas.type == 'distance':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 2:
-                    print 'Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms)
-                    sys.exit(1)
+                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
+                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(1)
             elif meas.type == 'COG':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms == 0:
-                    print 'Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (meas.type, meas.selecttext)
-                    sys.exit(1)
+                    self.logger.err('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
+                      % (meas.type, meas.selecttext))
                 meas.set_width(3)
             elif meas.type == 'COM':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms == 0:
-                    print 'Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (meas.type, meas.selecttext)
-                    sys.exit(1)
+                    self.logger.err('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
+                      % (meas.type, meas.selecttext))
                 meas.set_width(3)
             elif meas.type == 'water_dipole':
                 # not implemented
-                print 'measurement type %s not implemented, exiting' % meas.type
-                sys.exit(1)
+                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
             else:
-                print 'unrecognized measure type %s! Exiting...' % meas.type
-                sys.exit(1)
+                self.logger.err('unrecognized measure type %s! Exiting...' % meas.type)
         # check input data format and call the appropriate method to generate the array
         if self.input_type == 'dcd_traj':
             tmp_array = self._DCD_timeseries()
@@ -133,10 +123,10 @@ class ExtendedTSC(TrajInit):
         elif self.input_type == 'pdb':
             tmp_array = self._generic_timeseries()
         else:
-            sys.exit(1)
+            self.logger.err('Cannot determine input data format! Check trajectory initialization!')
         # process the array into a DataSet object
         self.primaryDS.add_collection(tmp_array)
-        self._setup_time()
+        self.primaryDS._setup_timesteps()
 
     def _DCD_timeseries(self):
         """Use TimeseriesCollection to make measurements (fast but DCD only)."""
@@ -167,19 +157,19 @@ class ExtendedTSC(TrajInit):
         # NOTE: There's a bug in MDAnalysis' fast DCD reader code that causes it to drop the last
         # frame it should measure when slicing the trajectory in any way (not the same bug as noted above in
         # 'measures_from_volumesearch'). Haven't tracked it down so we just work around it - ???still active in 0.16.1???
-        if self.framerange is None:
+        if self.primaryDS.framerange is None:
             collection.compute(self.u.trajectory)
         else:
-            collection.compute(self.u.trajectory, start=self.framerange[0], stop=self.framerange[1], step=self.framerange[2])
+            collection.compute(self.u.trajectory, start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
         return collection.data
 
     def _generic_timeseries(self):
         """Use _GenericTSC to make measurements (any trajectory format)."""
 
-        if self.framerange is None:
+        if self.primaryDS.framerange is None:
             collection = _GenericTSC(self.primaryDS.measurements,self.u)
         else:
-            collection = _GenericTSC(self.primaryDS.measurements,self.u,start=self.framerange[0],stop=self.framerange[1],step=self.framerange[2])
+            collection = _GenericTSC(self.primaryDS.measurements,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
         collection.run()
         return collection.data
 
@@ -197,8 +187,8 @@ class _VolumeSearch(AnalysisBase):
         if mode in valid_modes:
             self.mode = mode
         else:
-            print 'Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(valid_modes)
-            sys.exit(1)
+            errmsg = 'Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(valid_modes)
+            sys.exit(errmsg)
 
     def _prepare(self):
         # setup vars and data structures

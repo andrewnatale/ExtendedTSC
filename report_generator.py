@@ -8,12 +8,13 @@ from TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
+reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
 report_name = reports[rep_idx]
+dat_root_dir = ''
 # load data sets
-a = TimeseriesCore(datfile=os.path.join('basic_meas', report_name+'.basic.dat'))
-b = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
-bw = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+a = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'basic_meas', report_name+'.basic.dat'))
+b = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
+bw = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 # make data sets indexable
 basic = a.primaryDS.simplify_indexing(return_dict=True)
 klipid = b.primaryDS.simplify_indexing(return_dict=True)

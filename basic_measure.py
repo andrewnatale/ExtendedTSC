@@ -10,7 +10,7 @@ except IndexError:
     psffile = None
     dcdfile = None
 
-input_prefix = '/Volumes/data/andrew'
+input_prefix = '/Users/anatale/school/UCSF/Grabe_lab/data'
 
 outtag = 'basic'
 # make output dir in cwd
@@ -28,23 +28,29 @@ if psffile and dcdfile:
     filepairsTM4 = None
 else:
     # hardcode filenames for batch process
+    # filepairs = [
+    # (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
+    #  os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full.new_align.500ps.dcd')),
+    # (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/topo.traakG124I_S1S3_npt.psf'),
+    #  os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3.new_align.500ps.dcd')),
+    # (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/topo.traakG124I_S2S4_npt.psf'),
+    #  os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4.new_align.500ps.dcd')),
+    # (os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
+    #  os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/traakWT_full.new_align.500ps.dcd')),
+    # (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/topo.traakWT_S1S3_npt.psf'),
+    #  os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3.new_align.500ps.dcd')),
+    # (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/topo.traakWT_S2S4_npt.psf'),
+    #  os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4.new_align.500ps.dcd'))
+    # ]
     filepairs = [
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/topo.traakG124I_S1S3_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/topo.traakG124I_S2S4_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/traakWT_full.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/topo.traakWT_S1S3_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/topo.traakWT_S2S4_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4.new_align.500ps.dcd'))
+    (os.path.join(input_prefix, 'traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
+     os.path.join(input_prefix, 'traakG124I_full_trimmed/traakG124I_full_npt.all.200ps.filter_alignZ.dcd')),
+    (os.path.join(input_prefix, 'traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
+     os.path.join(input_prefix, 'traakWT_full_trimmed/traakWT_full_npt.all.200ps.filter_alignZ.dcd')),
     ]
     filepairsTM4 = [
     (os.path.join(input_prefix, 'traakTM4_trimmed/topo.traakTM4_npt.psf'),
-     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4.new_align.500ps.dcd')),
+     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4_npt.all.200ps.filter_alignZ.dcd')),
     ]
 
 # selections for measurements
@@ -100,7 +106,7 @@ os.chdir(outdir)
 
 for pair in filepairs:
     a = ExtendedTSC()
-    a.load_dcd(pair[0],pair[1])
+    a.load_dcd(pair[0],pair[1], traj_stepsize=200)
     a.measures_from_list(selections)
     a.run()
     output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag
@@ -109,7 +115,7 @@ for pair in filepairs:
 if filepairsTM4:
     for pair in filepairsTM4:
         a = ExtendedTSC()
-        a.load_dcd(pair[0],pair[1])
+        a.load_dcd(pair[0],pair[1], traj_stepsize=200)
         a.measures_from_list(selections_traakTM4)
         a.run()
         output = pair[1].split('/')[-1].split('.')[0] + '.' + outtag

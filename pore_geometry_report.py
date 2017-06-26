@@ -8,15 +8,16 @@ from TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
+reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
 #reports = ['traakWT_full','traakG124I_full']
 report_name = reports[rep_idx]
 
+dat_root_dir = ''
 # load data sets
-a = TimeseriesCore(datfile=os.path.join('pore_geo', report_name+'.pore_geo.dat'))
+a = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'pore_geo', report_name+'.pore_geo.dat'))
 #b = ExtendedTSC.ExtendedTSC(datfile=os.path.join('pore_geo', reports[1]+'.pore_geo.dat'))
-c = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join('core_volume_tracking', report_name+'.core_vol.mask.dat'))
-d = TimeseriesCore(datfile=os.path.join('core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+c = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
+d = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 
 # make data sets indexable
 wt = a.primaryDS.simplify_indexing(return_dict=True)
@@ -25,8 +26,6 @@ klipids = c.primaryDS.simplify_indexing(return_dict=True)
 kmask = c.maskDS.simplify_indexing(return_dict=True)
 tip3z = d.primaryDS.simplify_indexing(return_dict=True)
 
-# reference z=0
-#zref = np.reshape(np.copy(klipids['S4bottom'][2,:]), (1,-1))
 # for each sf carbonyl ~plane, calculate area and avg z-displacement
 names = {
 'D':['a_129og1','a_238og1','b_129og1','b_238og1'],
@@ -37,16 +36,18 @@ names = {
 'I':['a_133o','a_242o','b_133o','b_242o']
 }
 
+# reference z=0
+# zref = np.reshape(np.copy(klipids['S4bottom'][2,:]), (1,-1))
 zref = None
 count = 0
-for key in names:
+for key in ['D','E','F','G','H']:
     for elem in names[key]:
         if zref is None:
             zref = wt[elem][2,:]
         else:
             zref = zref + wt[elem][2,:]
         count += 1
-zref = np.reshape((zref / float(count))-1.5, (1,-1))
+zref = np.reshape((zref / float(count)), (1,-1))
 
 print zref
 zcoords = {}
@@ -115,5 +116,5 @@ for idx,time in np.ndenumerate(tip3z['time']):
     ax.plot(timeblob, waters, c=watercolor, zorder=3, marker='o', mew=0.0, ms=3, linestyle="None")
 # limits and labels
 ax.set_xlim([klipids['time'][0,0]/1000.0, klipids['time'][0,-1]/1000.0])
-ax.set_ylim([-8.5,9.5])
+ax.set_ylim([-9,9])
 plt.show()
