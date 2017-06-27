@@ -55,7 +55,7 @@ while stopframe < n_frames:
     else:
         startframe = startframe + options['chunksize']
         stopframe = stopframe + options['chunksize']
-    if stopframe >= n_frames:
+    if stopframe >= n_frames-1:
         chunks.append((startframe, -1, 1))
     else:
         chunks.append((startframe, stopframe, 1))
@@ -80,7 +80,7 @@ def job_runner(opts):
     elif fst == 'zsearch':
         a = ZSearch(verbose=True,log=outname+'.log')
     # re-load universe
-    a.load_traj(
+    a.load_dcd(
       os.path.join(input_prefix, universe_recipe['toponame']),
       os.path.join(input_prefix, universe_recipe['trajname']),
       universe_recipe['stepsize'],
