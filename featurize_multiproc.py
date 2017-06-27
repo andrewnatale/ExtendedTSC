@@ -113,7 +113,7 @@ else:
             if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('.dat'):
                 mergelist.append(filename)
         b = MergeDS()
-        b.merge_along_time(mergelist)
+        b.merge_along_time(sorted(mergelist))
         b.write_data('%s_%s_all_frames' % (options['job_name'], key))
 finally:
     if options['copy_to']:
