@@ -95,5 +95,12 @@ def job_runner(opts):
         a.run(feature_set_options['volselectext'], feature_set_options['searchselectext'])
     a.write_data(outname)
 
-mppool = multiprocessing.Pool(int(options['num_proc']))
-mppool.map(job_runner, job_array)
+# mppool = multiprocessing.Pool(int(options['num_proc']))
+# mppool.map(job_runner, job_array)
+
+if options['copy_to']:
+    if options['copy_to'] != options['input_prefix']:
+        os.listdir(input_prefix)
+        os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
+        os.remove(os.path.join(input_prefix, universe_recipe['trajname'])
+        os.listdir(input_prefix)
