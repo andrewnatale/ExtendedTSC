@@ -47,9 +47,9 @@ class TimeseriesCore(object):
     """
 
         if self.primaryDS.populated:
-            self._data_writer(self.primaryDS, outfile=fileprefix+'.dat')
+            self._data_writer(self.primaryDS, outfilename=fileprefix+'.dat')
         if self.maskDS.populated:
-            self._data_writer(self.maskDS, outfile=fileprefix+'.mask.dat')
+            self._data_writer(self.maskDS, outfilename=fileprefix+'.mask.dat')
 
     def merge_along_time(self, datlist, masklist=None, strict_checking=False):
         """Load a list of datasets that contain the same features and merge them along the time
