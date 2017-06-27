@@ -1,37 +1,33 @@
 import numpy as np
-from TrajProcessor import TrajProcessor
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
+from core.TrajProcessor import TrajProcessor
 
 class ZSearch(TrajProcessor):
-    """Something something Something."""
+    """Similar to _VolumeSearch, but saves only the z-coordinate of each atom found in the search
+    volume at each timestep."""
 
     def run(self,vol_selecttext,search_selecttext):
-        """Save z-coordinates for all water molecules in a defined volume for
-            each frame, then populate a DataSet object with the results.
+        """Arguments:
+    vol_selecttext - string; MDAnalysis geometric selection expression;
+        can be multiple volumes chained with and/or
+    search_selecttext - string; MDAnalysis atom selection expression;
+        defines what to look for in the selected volume
+    """
 
-        Arguments:
-        vol_selecttext - string; MDAnalysis geometric selection expression;
-            can be multiple volumes chained with and/or
-        search_selecttext - string; MDAnalysis atom selection expression;
-            defines what to look for in the selected volume
-        """
-
-        if self.framerange is None:
+        if self.primaryDS.framerange is None:
             searcher = _SearchZ(vol_selecttext,search_selecttext,self.u)
         else:
-            searcher = _SearchZ(vol_selecttext,search_selecttext,self.u,start=self.framerange[0],stop=self.framerange[1],step=self.framerange[2])
+            searcher = _SearchZ(vol_selecttext,search_selecttext,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
         searcher.run()
         # setup data set using search results
         for descriptor in searcher.selections:
             self.primaryDS.add_measurement(descriptor)
         self.primaryDS.add_collection(searcher.coordarray)
-        self._setup_time()
+        self.primaryDS.setup_timesteps()
         self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
 
 class _SearchZ(AnalysisBase):
-    """Similar to _VolumeSearch, but just saves the z-coordinate of each atom found in the search
-    volume at each timestep."""
     # TODO: specify coordinates (xyz) to save so more than z can be used
 
     def __init__(self,vol_selecttext,search_selecttext,universe,**kwargs):

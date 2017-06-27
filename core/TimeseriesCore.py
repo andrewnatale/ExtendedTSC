@@ -1,5 +1,6 @@
 import sys, os, datetime
 import numpy as np
+import DataSet
 
 class TimeseriesCore(object):
     """ExtendedTSC base class. On its own, this class can be used to read (and write) ExtendedTSC
@@ -9,7 +10,7 @@ class TimeseriesCore(object):
     # version info
     file_format_version = '1.0'
 
-    def __init__(self, datfile=None, maskfile=None, verbose=True, log=False):
+    def __init__(self, datfilename=None, maskfilename=None, verbose=True, log=None):
         """Initialize TimeseriesCore and optionally load dat files.
 
     Keyword arguments:
@@ -23,15 +24,15 @@ class TimeseriesCore(object):
         self.logger = _TSLogger(verbose, log)
         self.input_type = None # 'dat' 'traj' 'pdb'
         # load a single dat/mask pair through __init__(), otherwise use load()
-        if datfile and not maskfile:
-            self.primaryDS = self._data_reader(datfile, False)
+        if datfilename and not maskfilename:
+            self.primaryDS = self._data_reader(datfilename, False)
             self.maskDS = None
             self.input_type = 'dat'
-        elif datfile and maskfile:
-            self.primaryDS = self._data_reader(datfile, False)
-            self.maskDS = self._data_reader(maskfile, True)
+        elif datfilename and maskfilename:
+            self.primaryDS = self._data_reader(datfilename, False)
+            self.maskDS = self._data_reader(maskfilename, True)
             self.input_type = 'dat'
-        elif maskfile and not datfile:
+        elif maskfilename and not datfilename:
             self.logger.err('Cannot load a mask file without a corresponding dat file! Exiting...')
         else:
             # not sure if this should be left to subclasses?
@@ -70,7 +71,8 @@ class TimeseriesCore(object):
         if masklist:
             for filename in masklist:
                 masks.append(self._data_reader(filename, True))
-        # mandatory checks, compare all DataSets to the first one. NOTE: needs work!
+        # NOTE: Checking needs work, it is very basic!
+        # extract paramters from the first DataSet in the list and compare to all the others
         test_stride = dats[0].framerange[2]
         test_width = dats[0].get_width()
         first_frame = dats[0].framerange[0]
@@ -81,13 +83,13 @@ class TimeseriesCore(object):
             if (last_frame+1 != elem.framerange[0]):
                 self.logger.msg('Warning! Apparent overlap or missing frames during merge!')
             last_frame = elem.framerange[1]
+        # if strict checking is requested, do some addtional checks
         if strict_checking:
             # chacks to implement:
             # topo/traj name matching
             # same features
             pass
-        # init new DataSet objects for merge
-        self._init_datasets()
+        # default DataSets should be initialized by __init__
         self.primaryDS._copy_metadata(dats[0])
         self.primaryDS.framerange = (first_frame, last_frame, test_stride)
         for meas in dats[0].measurements:
@@ -95,14 +97,13 @@ class TimeseriesCore(object):
         self.primaryDS.add_collection(np.concatenate([i.data for i in dats], axis=1))
         self.primaryDS.add_timesteps(np.concatenate([i.time for i in dats], axis=0))
         if masklist:
-            self.maskDS = DataSet()
             self.maskDS._copy_metadata(self.primaryDS)
             for meas in masks[0].measurements:
                 self.maskDS.add_measurement((meas.name, meas.type, meas.selecttext), meas.width)
             self.maskDS.add_collection(np.concatenate([i.data for i in masks], axis=1))
             self.maskDS.add_timesteps(np.concatenate([i.time for i in masks], axis=0))
 
-    def merge_along_features(self, datlist, checking='permissive'):
+    def merge_along_features(self, datlist, strict_checking=False):
         """Load a list of datasets that cover the same time window of a trajectory and merge them
     along the features axis."""
         pass
@@ -111,21 +112,22 @@ class TimeseriesCore(object):
         """Setup empty default DataSet objects. Subclasses should use these unless there is a good
     reason to customize."""
 
-        self.primaryDS = DataSet()
+        self.primaryDS = DataSet._DataSet()
         self.primaryDS.data_datetime = datetime.datetime.now()
         self.primaryDS.data_hostname = os.uname()[1]
-        self.maskDS = DataSet()
+        self.maskDS = DataSet._DataSet()
+        self.maskDS.is_mask = True
 
-    def _datasets_to_dicts(self):
-        """Call the _simplify_indexing method of each DataSet object to build
-    dictionaries based on measurement names"""
+    # def _datasets_to_dicts(self):
+    #     """Call the _simplify_indexing method of each DataSet object to build
+    # dictionaries based on measurement names"""
+    #
+    #     if self.primaryDS.populated:
+    #         self.primary = self.primaryDS.simplify_indexing()
+    #     if self.maskDS.populated:
+    #         self.mask = self.primaryDS.simplify_indexing()
 
-        if self.primaryDS.populated:
-            self.primary = self.primaryDS._simplify_indexing()
-        if self.maskDS.populated:
-            self.mask = self.primaryDS._simplify_indexing()
-
-    def _data_writer(self, dataset, outfile=None):
+    def _data_writer(self, dataset, outfilename=None):
         """Writes contents of a DataSet to a file with the following format:
 
     >header # starts the header selection, should be the first non-comment line in file
@@ -154,8 +156,8 @@ class TimeseriesCore(object):
     outfile - string; output file name; if not specified, file lines are printed to stdout
     """
 
-        if outfile:
-            self.logger.msg('Writing DataSet to file: %s' % outfile)
+        if outfilename:
+            self.logger.msg('Writing DataSet to file: %s' % outfilename)
         # build a list of lines to write
         output_lines = []
         # always write this metadata
@@ -209,28 +211,28 @@ class TimeseriesCore(object):
             output_lines.append('\n')
         # indcate that file was written completely
         output_lines.append('>end')
-
-        if outfile is None:
+        # either write the file or just print what would be written
+        if outfilename is None:
             print ''.join(output_lines)
         else:
-            with open(outfile, 'w') as datfile:
+            with open(outfilename, 'w') as datfile:
                 datfile.write(''.join(output_lines))
-            self.logger.msg('Finished writing output to: %s' % outfile)
+            self.logger.msg('Finished writing output to: %s' % outfilename)
 
-    def _data_reader(self, infile, mask):
+    def _data_reader(self, infilename, mask):
         """Rebuild DataSet from saved measurements in a .dat file.
 
     Arguments:
     infile - string; name of file to read
     """
 
-        self.logger.msg('Reading data file: %s' % infile)
+        self.logger.msg('Reading data file: %s' % infilename)
         if mask:
-            self.logger.msg('Expecting file %s to be of special type \'mask\'' % infile)
+            self.logger.msg('Expecting file %s to be of special type \'mask\'' % infilename)
         tmpversion = None
-        tmpDataSet = DataSet()
+        tmpDataSet = DataSet._DataSet()
         # open and read input file
-        with open(infile, 'r') as datfile:
+        with open(infilename, 'r') as datfile:
             lines = datfile.readlines()
         lines = [i.strip() for i in lines]
         # superficial check to see if input file was written to completion
@@ -292,7 +294,7 @@ class TimeseriesCore(object):
                         if name == meas.name:
                             meas.incr_width()
         # version check
-        self._check_version(tmpversion)
+        self._check_file_version(tmpversion)
         # process data lines
         tmplist = []
         tmptime = []
@@ -311,127 +313,24 @@ class TimeseriesCore(object):
         tmpDataSet.add_collection(np.array(tmplist).T)
         if read_mask:
             tmpDataSet.is_mask = True
-        self.logger.msg('Finished reading file: %s' % infile)
+        self.logger.msg('Finished reading file: %s' % infilename)
         return tmpDataSet
 
-    def _check_version(self, version_number):
+    def _check_file_version(self, version_number):
         if version_number is None:
             self.logger.msg('Warning! Cannot detect filetype version!')
         elif version_number != self.file_format_version:
             # in the future, some versions may become obsolete and processing should stop here
             pass
 
-class DataSet(object):
-    """A class to organize a set of measurements generated together on one pass through a trajectory."""
-
-    def __init__(self):
-        self.measurements = []
-        self.populated = False
-        self.is_mask = False
-        self.toponame = None # path to topology file
-        self.trajname = None # path to trajectory file
-        self.traj_stepsize = None # in picoseconds
-        self.pdbname = None # path to pdb file
-        self.framerange = None # all frames, no skipping
-
-    def _copy_metadata(self, target):
-        """Copy metadata from another DataSet instance."""
-
-        self.toponame = target.toponame
-        self.trajname = target.trajname
-        self.traj_stepsize = target.traj_stepsize
-        self.pdbname = target.pdbname
-        self.framerange = target.framerange
-
-    def add_measurement(self, descriptor, width=0):
-        self.measurements.append(_Measurement(descriptor, width=width))
-
-    def count_measurements(self):
-        return len(self.measurements)
-
-    def get_width(self):
-        return np.shape(self.data)[0]
-
-    def get_length(self):
-        return np.shape(self.data)[1]
-
-    def get_starttime(self):
-        return self.time[0]
-
-    def get_endtime(self):
-        return self.time[-1]
-
-    def add_collection(self, array):
-        self.data = array
-        # can only add data once
-        self.populated = True
-
-    def add_timesteps(self, array):
-        self.time = array
-
-    def _simplify_indexing(self, return_dict=True):
-        """Links _Measurement objects to the data array and (optionally) returns a dict for lookup
-    by measurement name. Doesn't add or change any data, just makes access a bit simpler."""
-
-        idx = 0
-        self.access = {}
-        for meas in self.measurements:
-            meas.add_data(self.data[idx:idx+meas.width,:])
-            self.access[meas.name] = meas.series
-            idx += meas.width
-        # plotting doesn't work well without doing this
-        self.access['time'] = np.reshape(self.time, (1,-1))
-        if return_dict:
-            return self.access
-
-    def _setup_timesteps(self):
-        """Generate time values (in picoseconds) after being populated."""
-
-        if not self.populated:
-            self.logger.err('Cannot setup DataSet time values! No data or wrong input type! Exiting...')
-        # create an array of time values (in ps) for plotting and load it into datasets
-        if self.pdbname:
-            self.time = np.array([0,])
-        else:
-            if self.framerange is None:
-                firstframe = 0
-                framestep = 1
-            else:
-                firstframe = self.framerange[0]
-                framestep = self.framerange[2]
-            starttime = firstframe * self.traj_stepsize
-            n_steps = np.shape(self.data)[1]
-            endtime = firstframe * self.traj_stepsize + self.traj_stepsize * framestep * (n_steps - 1)
-            self.time = np.linspace(float(starttime), float(endtime), num=n_steps)
-
-# private classes
-
-class _Measurement(object):
-    """A class to hold a single measurement and keep track of its description and data."""
-
-    def __init__(self, descriptor, width):
-        self.name, self.type, self.selecttext = descriptor
-        self.set_width(width)
-        self.series = None
-
-    def set_width(self, width):
-        self.width = int(width)
-
-    def incr_width(self):
-        self.width += 1
-
-    def add_data(self, array):
-        self.series = array
-
 class _TSLogger(object):
     """A simple class to log and print actions taken by TimeseriesCore and child objects."""
 
-    def __init__(self, verbose, write_log):
+    def __init__(self, verbose, log):
         self.verbose = verbose
         self.log_file = None
-        if write_log:
-            tag = str(datetime.datetime.now()).replace(' ','_').replace('.','').replace(':','')
-            self.log_file = open(os.path.join(os.getcwd(), '%s.log' % tag), 'w')
+        if log:
+            self.log_file = open(os.path.join(os.getcwd(), log), 'w')
 
     def msg(self, msgtext):
         if self.log_file:
@@ -444,4 +343,5 @@ class _TSLogger(object):
         if self.log_file:
             self.log_file.write('Error: '+msgtext)
             self.log_file.write('\n')
+            self.log_file.close()
         sys.exit('Error: '+msgtext)
