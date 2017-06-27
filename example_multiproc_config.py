@@ -1,45 +1,41 @@
-io_options = \
+options = \
 {
-'input_prefix' : '/Users/anatale/school/UCSF/Grabe_lab/data/traakTM4_trimmed',
-'copy_to': None,
-'output_prefix' : None,
-'num_processes' : 2
+'job_name' : 'test',
+'input_prefix' : '/path/to/indir',
+'copy_to': '/path/to/ramdisk',
+'output_prefix' : '/path/to/outdir',
+'num_processes' : 5,
+'chunksize' : 50,
+'stride' : 1
 }
 
 universe_recipe = \
 {
-'toponame' : 'topo.traakTM4_npt.psf',
-'trajname' : 'traakTM4_npt.all.500ps.filter_alignZ.dcd',
+'toponame' : 'topo.file.name.psf',
+'trajname' : 'traj.file.name.dcd',
 'stepsize' : 500,
-'input_type' : 'dcd_traj',
-'extraopts' : None
+'input_type' : 'dcd_traj'
 }
 
 feature_sets = \
 {
-'basic_set' :
-    {
-    'feature_set_type' : 'basic',
-    'descriptorlist' : ''
-    }
-,
-'vsearch_set' :
-    {
-    'feature_set_type' : 'volumesearch',
-    'volselectext' : '',
-    'searchselectext' : ''
-    }
-,
-'zsearch_set' :
-    {
-    'feature_set_type' : 'zsearch',
-    'volselectext' : '',
-    'searchselectext' : ''
-    }
-}
-
-trajectory_options = \
-{
-'chunksize' : 50,
-'stride' : 1
+    'simple_set' :
+        {
+        'feature_set_type' : 'simple',
+        'descriptorlist' : ''
+        }
+    ,
+    'vtrack_set' :
+        {
+        'feature_set_type' : 'vtrack',
+        'volselectext' : '',
+        'searchselectext' : ''
+        }
+    ,
+    'zsearch_set' :
+        {
+        'feature_set_type' : 'zsearch',
+        'volselectext' : '',
+        'searchselectext' : ''
+        }
 }
