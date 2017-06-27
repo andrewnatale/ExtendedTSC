@@ -63,15 +63,18 @@ while stopframe < n_frames:
 # build job array
 job_array = []
 for key in feature_sets:
-    for framerange in chunks:
-        job_array.append((key, feature_sets[key], framerange))
+    for idx,framerange in enumerate(chunks):
+        task_id = str(idx + 1)
+        while len(task_id) < 4:
+            task_id = '0'+task_id
+        job_array.append((key, feature_sets[key], framerange, task_id))
 #print job_array
 
 def job_runner(opts):
-    feature_set_name, feature_set_options, framerange = opts
+    feature_set_name, feature_set_options, framerange, task_id = opts
     fst = feature_set_options['feature_set_type']
     # output tag
-    outname = '%s_%s_frames%dto%d' % (options['job_name'], feature_set_name, framerange[0], framerange[1])
+    outname = '%s_%s_%s' % (options['job_name'], feature_set_name, task_id)
     # get feature set type and init
     if fst == 'simple':
         a = SimpleFeatures(verbose=True,log=outname+'.log')
@@ -95,12 +98,20 @@ def job_runner(opts):
         a.run(feature_set_options['volselectext'], feature_set_options['searchselectext'])
     a.write_data(outname)
 
-# mppool = multiprocessing.Pool(int(options['num_proc']))
-# mppool.map(job_runner, job_array)
-
-if options['copy_to']:
-    if options['copy_to'] != options['input_prefix']:
-        os.listdir(input_prefix)
-        os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
-        os.remove(os.path.join(input_prefix, universe_recipe['trajname'])
-        os.listdir(input_prefix)
+try:
+    mppool = multiprocessing.Pool(int(options['num_proc']))
+    mppool.map(job_runner, job_array)
+except:
+    print 'Something went wrong in the multiprocessing pool!!'
+    print 'Output files may be missing or contain errors!!'
+else:
+    # concatenate data sets here
+    pass
+finally:
+    print 'Cleaning up...'
+    if options['copy_to']:
+        if options['copy_to'] != options['input_prefix']:
+            os.listdir(input_prefix)
+            os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
+            os.remove(os.path.join(input_prefix, universe_recipe['trajname'])
+            os.listdir(input_prefix)
