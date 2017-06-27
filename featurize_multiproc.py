@@ -5,6 +5,7 @@ import MDAnalysis as mda
 from analysis.SimpleFeatures import SimpleFeatures
 from analysis.VolumeTracker import VolumeTracker
 from analysis.ZSearch import ZSearch
+from core.MergeDS import MergeDS
 
 # load config file
 # provides 3 dicts; 'options', 'universe_recipe', and 'feature_sets'
@@ -44,7 +45,7 @@ del throwaway
 
 # figure out how many chunks to break each big job into
 # NOTE: the stopframe variable is non-inclusive!
-# to get frames 0-49 you must give a framerange of (0, 50, 1)
+# to get frames 0-49 you must pass a framerange of (0, 50, 1)
 startframe = None
 stopframe = None
 chunks = []
@@ -105,13 +106,18 @@ except:
     print 'Something went wrong in the multiprocessing pool!!'
     print 'Output files may be missing or contain errors!!'
 else:
-    # concatenate data sets here
-    pass
+    # merge data sets
+    for key in feature_sets:
+        mergelist =[]
+        for filename in os.listdir(os.getcwd()):
+            if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('.dat'):
+                mergelist.append(filename)
+        b = MergeDS()
+        b.merge_along_time(mergelist)
+        b.write_data('%s_%s_all_frames' % (options['job_name'], key))
 finally:
-    print 'Cleaning up...'
     if options['copy_to']:
         if options['copy_to'] != options['input_prefix']:
-            os.listdir(input_prefix)
+            print 'Cleaning up...'
             os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
-            os.remove(os.path.join(input_prefix, universe_recipe['trajname'])
-            os.listdir(input_prefix)
+            os.remove(os.path.join(input_prefix, universe_recipe['trajname']))

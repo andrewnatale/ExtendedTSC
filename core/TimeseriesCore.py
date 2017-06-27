@@ -51,63 +51,6 @@ class TimeseriesCore(object):
         if self.maskDS.populated:
             self._data_writer(self.maskDS, outfilename=fileprefix+'.mask.dat')
 
-    def merge_along_time(self, datlist, masklist=None, strict_checking=False):
-        """Load a list of datasets that contain the same features and merge them along the time
-    axis to generate one longer timeseries.
-
-    Arguments:
-    datlist - list of strings; paths to dat files to merge
-
-    Keyword arguments:
-    masklist - list of strings; paths to mask files corresponding to primary dat files
-    strict_checking - boolean; if True do extra checks before merge
-    """
-
-        # load specified files into lists of DataSet objects
-        dats = []
-        masks = []
-        for filename in datlist:
-            dats.append(self._data_reader(filename, False))
-        if masklist:
-            for filename in masklist:
-                masks.append(self._data_reader(filename, True))
-        # NOTE: Checking needs work, it is very basic!
-        # extract paramters from the first DataSet in the list and compare to all the others
-        test_stride = dats[0].framerange[2]
-        test_width = dats[0].get_width()
-        first_frame = dats[0].framerange[0]
-        last_frame = dats[0].framerange[1]
-        for elem in dats[1:]:
-            if (elem.framerange[2] != test_stride) or (elem.get_width() != test_width):
-                self.logger.exit('Failed to merge DataSets due to shape mismatch! Exiting...')
-            if (last_frame+1 != elem.framerange[0]):
-                self.logger.msg('Warning! Apparent overlap or missing frames during merge!')
-            last_frame = elem.framerange[1]
-        # if strict checking is requested, do some addtional checks
-        if strict_checking:
-            # chacks to implement:
-            # topo/traj name matching
-            # same features
-            pass
-        # default DataSets should be initialized by __init__
-        self.primaryDS._copy_metadata(dats[0])
-        self.primaryDS.framerange = (first_frame, last_frame, test_stride)
-        for meas in dats[0].measurements:
-            self.primaryDS.add_measurement((meas.name, meas.type, meas.selecttext), meas.width)
-        self.primaryDS.add_collection(np.concatenate([i.data for i in dats], axis=1))
-        self.primaryDS.add_timesteps(np.concatenate([i.time for i in dats], axis=0))
-        if masklist:
-            self.maskDS._copy_metadata(self.primaryDS)
-            for meas in masks[0].measurements:
-                self.maskDS.add_measurement((meas.name, meas.type, meas.selecttext), meas.width)
-            self.maskDS.add_collection(np.concatenate([i.data for i in masks], axis=1))
-            self.maskDS.add_timesteps(np.concatenate([i.time for i in masks], axis=0))
-
-    def merge_along_features(self, datlist, strict_checking=False):
-        """Load a list of datasets that cover the same time window of a trajectory and merge them
-    along the features axis."""
-        pass
-
     def _init_datasets(self):
         """Setup empty default DataSet objects. Subclasses should use these unless there is a good
     reason to customize."""
@@ -140,7 +83,7 @@ class TimeseriesCore(object):
     >pdbname # OPTIONAL pdb file used to generate measurements
     >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
     >measure # name, type, and selection algebra defining a measurement
-    >fields # 'time' and measure names/subnames as column headers
+    >fields # 'time' and measure names:subnames as column headers
     >endheader # ends the header section
     >data # data values at each timestep for each field
     >end # marks end of file
@@ -152,8 +95,7 @@ class TimeseriesCore(object):
     dataset - DataSet object; target data to process
 
     Keyword arguments:
-    mask - boolean; indicates whether the target data is a boolean mask
-    outfile - string; output file name; if not specified, file lines are printed to stdout
+    outfilename - string; output file name; if not specified, file lines are printed to stdout
     """
 
         if outfilename:

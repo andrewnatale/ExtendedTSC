@@ -3,10 +3,12 @@ from analysis.SimpleFeatures import SimpleFeatures as sf
 from analysis.VolumeTracker import VolumeTracker as vt
 from analysis.ZSearch import ZSearch as zs
 from core.TimeseriesCore import TimeseriesCore as tc
+from core.MergeDS import MergeDS as mds
 
 input_data = '/Users/anatale/school/UCSF/Grabe_lab/data'
 psffile = os.path.join(input_data, 'traakG124I_full_trimmed/topo.traakG124I_full_npt.psf')
 dcdfile = os.path.join(input_data, 'traakG124I_full_trimmed/traakG124I_full_npt.all.500ps.filter_alignZ.dcd')
+sample_dats = '/Users/anatale/school/UCSF/Grabe_lab/code/ExtendedTSC/sample_dats'
 
 def test_sf():
     selectlist = [
@@ -39,20 +41,29 @@ def test_zs():
     a._data_writer(a.primaryDS)
 
 def test_core_read():
-    datfile = os.path.abspath('tests/inputs/traakTM4_npt.core_vol.dat')
-    maskfile = os.path.abspath('tests/inputs/traakTM4_npt.core_vol.mask.dat')
+    datfile = os.path.join(sample_dats, 'test_vtrack_set_frames0to50.dat')
+    maskfile = os.path.join(sample_dats, 'test_vtrack_set_frames0to50.mask.dat')
 
     a = tc(datfilename=datfile, maskfilename=maskfile)
     a._data_writer(a.primaryDS)
     a._data_writer(a.maskDS)
 
-def test_merge():
-    datfiles = ['traakTM4_npt.test01.dat','traakTM4_npt.test02.dat','traakTM4_npt.test03.dat']
-    datfiles = [os.path.join(input_prefix,i) for i in datfiles]
-    c = TimeseriesCore()
+def test_simple_merge():
+    datfiles = ['test_simple_set_frames0to50.dat','test_simple_set_frames50to100.dat','test_simple_set_frames100to150.dat']
+    datfiles = [os.path.join(sample_dats,i) for i in datfiles]
+    c = mds()
     c.merge_along_time(datfiles)
-    print c.primaryDS.__dict__
-    c._data_writer(c.primaryDS, outfile='test_output/merge_test.dat')
+    c._data_writer(c.primaryDS, outfilename='test1.dat')
+
+def test_padded_merge():
+    datfiles = ['test_zsearch_set_frames0to50.dat','test_zsearch_set_frames50to100.dat','test_zsearch_set_frames100to150.dat','test_zsearch_set_frames150to200.dat']
+    datfiles = [os.path.join(sample_dats,i) for i in datfiles]
+    c = mds()
+    c.merge_along_time(datfiles)
+    c._data_writer(c.primaryDS, outfilename='test2.dat')
+
+def test_mask_merge():
+    pass
 
 def test_multiproc():
     pass
