@@ -56,7 +56,7 @@ class TimeseriesCore(object):
     reason to customize."""
 
         self.primaryDS = DataSet._DataSet()
-        self.primaryDS.data_datetime = datetime.datetime.now()
+        self.primaryDS.data_datetime = str(datetime.datetime.now())
         self.primaryDS.data_hostname = os.uname()[1]
         self.maskDS = DataSet._DataSet()
         self.maskDS.is_mask = True
@@ -69,6 +69,14 @@ class TimeseriesCore(object):
     #         self.primary = self.primaryDS.simplify_indexing()
     #     if self.maskDS.populated:
     #         self.mask = self.primaryDS.simplify_indexing()
+
+    def _custom_dataset(self):
+        """Return an initialized DataSet object for customization."""
+
+        custom_dataset = DataSet._DataSet()
+        custom_dataset.data_datetime = str(datetime.datetime.now())
+        custom_dataset.data_hostname = os.uname()[1]
+        return custom_dataset
 
     def _data_writer(self, dataset, outfilename=None):
         """Writes contents of a DataSet to a file with the following format:
@@ -211,9 +219,9 @@ class TimeseriesCore(object):
                 elif p.split()[1] == 'False':
                     read_mask = False
                 else:
-                    self.logger.err('Cannot determine if file %s is data or mask. Exiting...' % infile)
+                    self.logger.err('Cannot determine if file %s is data or mask. Exiting...' % infilename)
                 if read_mask != mask:
-                    self.logger.err('Mismatch between expected filetype (mask or dat) and what was found in %s. Exiting...' % infile)
+                    self.logger.err('Mismatch between expected filetype (mask or dat) and what was found in %s. Exiting...' % infilename)
             elif leader == '>stepsize(ps)':
                 tmpDataSet.traj_stepsize = int(p.split()[1])
             elif leader == '>framerange':

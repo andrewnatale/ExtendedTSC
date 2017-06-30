@@ -53,20 +53,19 @@ class _DataSet(object):
     def add_timesteps(self, array):
         self.time = array
 
-    def simplify_indexing(self, return_dict=True):
-        """Links _Measurement objects to the data array and (optionally) returns a dict for lookup
+    def dataset_to_dict(self):
+        """Links _Measurement objects to the data array and returns a dict for lookup
     by measurement name. Doesn't add or change any data, just makes access a bit simpler."""
 
         idx = 0
-        self.access = {}
+        access = {}
         for meas in self.measurements:
             meas.add_data(self.data[idx:idx+meas.width,:])
-            self.access[meas.name] = meas.series
+            access[meas.name] = meas.series
             idx += meas.width
         # plotting doesn't work well without doing this
-        self.access['time'] = np.reshape(self.time, (1,-1))
-        if return_dict:
-            return self.access
+        access['time'] = np.reshape(self.time, (1,-1))
+        return access
 
     def setup_timesteps(self):
         """Generate time values (in picoseconds) after being populated."""

@@ -4,27 +4,28 @@ from itertools import cycle
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 #import ExtendedTSC_old
-from TimeseriesCore import TimeseriesCore
+from core.TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
-#reports = ['traakWT_full','traakG124I_full']
-report_name = reports[rep_idx]
+reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
 
-dat_root_dir = ''
+report_name = reports[rep_idx]
+dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/traj_features/'
+tgt_data = '500ps'
+
 # load data sets
-a = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'pore_geo', report_name+'.pore_geo.dat'))
+a = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'pore_geo', report_name+'.pore_geo.dat'))
 #b = ExtendedTSC.ExtendedTSC(datfile=os.path.join('pore_geo', reports[1]+'.pore_geo.dat'))
-c = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
-d = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+c = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
+d = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 
 # make data sets indexable
-wt = a.primaryDS.simplify_indexing(return_dict=True)
+wt = a.primaryDS.dataset_to_dict()
 #mut = b.primaryDS.simplify_indexing(return_dict=True)
-klipids = c.primaryDS.simplify_indexing(return_dict=True)
-kmask = c.maskDS.simplify_indexing(return_dict=True)
-tip3z = d.primaryDS.simplify_indexing(return_dict=True)
+klipids = c.primaryDS.dataset_to_dict()
+kmask = c.maskDS.dataset_to_dict()
+tip3z = d.primaryDS.dataset_to_dict()
 
 # for each sf carbonyl ~plane, calculate area and avg z-displacement
 names = {

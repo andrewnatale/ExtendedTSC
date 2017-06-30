@@ -4,17 +4,19 @@ from itertools import cycle
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 #import ExtendedTSC_old
-from TimeseriesCore import TimeseriesCore
+from core.TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
+#reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
+reports = ['traakWT_full_npt','traakG124I_full_npt','traakTM4_npt']
 report_name = reports[rep_idx]
-dat_root_dir = ''
+dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/traj_features/'
+tgt_data = '200ps'
 # load data sets
-a = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'basic_meas', report_name+'.basic.dat'))
-b = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
-bw = TimeseriesCore(datfile=os.path.join(dat_root_dir, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
+a = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'basic_meas', report_name+'.basic.dat'))
+b = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
+bw = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 # make data sets indexable
 basic = a.primaryDS.simplify_indexing(return_dict=True)
 klipid = b.primaryDS.simplify_indexing(return_dict=True)
@@ -32,7 +34,7 @@ except:
 references = ['TRAAKwt_4i9w','G124I_4rue','W262S_4ruf','TREK2_down_4xdj_AB','TREK2_down_4xdj_CD','TREK2_up_4bw5_AB','TREK2_up_4bw5_CD']
 ref_data = []
 for ref in references:
-    ref_data.append(TimeseriesCore(datfile=os.path.join('pdb_ref',ref+'.pdb_ref.dat')))
+    ref_data.append(TimeseriesCore(datfilename=os.path.join(dat_root_dir, 'pdb_ref', ref+'.pdb_ref.dat')))
 
 # do some vector math to setup
 # calc unit vector through the selectivity filter, SFunitV
@@ -56,7 +58,9 @@ orientB = np.sum((etaB - betaB) * SFunitV, axis=0)
 plt.figure()
 gs = GridSpec(3,2)
 gs.update(hspace=0.3)
-ax1 = plt.subplot(gs[0:2,0])
+#ax1 = plt.subplot(gs[0:2,0])
+ax6 = plt.subplot(gs[0,0])
+ax7 = plt.subplot(gs[1,0])
 ax2 = plt.subplot(gs[2,0])
 ax3 = plt.subplot(gs[0,1])
 ax4 = plt.subplot(gs[1,1])
@@ -227,7 +231,7 @@ else:
     ref_trp_ori_labels = None
 
 # setup axes
-pore_vol_occupancy(ax1,plotname='Filter and pore occupancy',xlabel=None)
+#pore_vol_occupancy(ax1,plotname='Filter and pore occupancy',xlabel=None)
 
 timeseries(
            ax2,
@@ -279,6 +283,27 @@ timeseries(
            plotname='W262 indole ring orientation',
            ylimits=[-7,7]
            )
+
+timeseries(
+           ax6,
+           datalist=[basic['trp_gapA'][0,:],basic['trp_gapB'][0,:]],
+           time=basic['time'][0,:],
+           datalabels=['subunit A','subunit B'],
+           ylabel='Angstroms',
+           plotname='P1-M4 distance',
+           ylimits=[4,14]
+           )
+
+timeseries(
+           ax7,
+           datalist=[basic['expA'][0,:],basic['expB'][0,:]],
+           time=basic['time'][0,:],
+           datalabels=['subunit A','subunit B'],
+           ylabel='Angstroms',
+           plotname='M2-M4 bundle gap',
+           ylimits=[6,16]
+           )
+
 
 plt.suptitle(report_name, fontsize=20)
 plt.show()
