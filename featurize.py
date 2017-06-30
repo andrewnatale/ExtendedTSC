@@ -21,6 +21,11 @@ feature_set_types = [
 
 # optionally copy input files to another location (like a ramdisk) before loading
 if options['copy_to']:
+    try:
+        os.mkdir(options['copy_to'])
+    except OSError:
+        if not os.path.isdir(options['copy_to']):
+            raise
     shutil.copy(os.path.join(options['input_prefix'], universe_recipe['toponame']), options['copy_to'])
     shutil.copy(os.path.join(options['input_prefix'], universe_recipe['trajname']), options['copy_to'])
     input_prefix = options['copy_to']
@@ -105,7 +110,6 @@ try:
 except:
     print 'Something went wrong in the multiprocessing pool!!'
     print 'Output files may be missing or contain errors!!'
-    raise
 else:
     # merge data sets
     for key in feature_sets:
