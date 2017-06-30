@@ -23,6 +23,8 @@ class VolumeTracker(SimpleFeatures):
 
         # TODO: input type check, shouldn't process pdbfiles
         self.maskDS.copy_metadata(self.primaryDS)
+        self.primaryDS.set_dynamic()
+        self.maskDS.set_dynamic()
         if self.primaryDS.framerange is None:
             searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u)
         else:

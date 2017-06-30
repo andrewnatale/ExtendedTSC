@@ -15,6 +15,7 @@ class ZSearch(TrajProcessor):
         defines what to look for in the selected volume
     """
 
+        self.primaryDS.set_static()
         if self.primaryDS.framerange is None:
             searcher = _SearchZ(vol_selecttext,search_selecttext,self.u)
         else:

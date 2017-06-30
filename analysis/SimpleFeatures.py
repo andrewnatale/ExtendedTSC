@@ -23,6 +23,7 @@ class SimpleFeatures(TrajProcessor):
         # setup primaryDS using selections from a list
         for descriptor in selection_list:
             self.primaryDS.add_measurement(descriptor)
+        self.primaryDS.set_static()
         self._generate_timeseries()
 
     def _generate_timeseries(self):

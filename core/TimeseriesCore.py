@@ -8,7 +8,7 @@ class TimeseriesCore(object):
     functions with output to .dat files."""
 
     # version info
-    file_format_version = '1.0'
+    file_format_version = '1.1'
 
     def __init__(self, datfilename=None, maskfilename=None, verbose=True, log=None):
         """Initialize TimeseriesCore and optionally load dat files.
@@ -23,19 +23,22 @@ class TimeseriesCore(object):
         # init logger
         self.logger = _TSLogger(verbose, log)
         self.input_type = None # 'dat' 'traj' 'pdb'
-        # load a single dat/mask pair through __init__(), otherwise use load()
+        # load a single dat/mask pair through __init__(), otherwise use load() for trajectory files
+        # for now, rely on the user to get the right kinds of files in the right place
         if datfilename and not maskfilename:
-            self.primaryDS = self._data_reader(datfilename, False)
+            self.primaryDS = self._data_reader(datfilename)
             self.maskDS = None
             self.input_type = 'dat'
         elif datfilename and maskfilename:
-            self.primaryDS = self._data_reader(datfilename, False)
-            self.maskDS = self._data_reader(maskfilename, True)
+            self.primaryDS = self._data_reader(datfilename)
+            self.maskDS = self._data_reader(maskfilename)
             self.input_type = 'dat'
         elif maskfilename and not datfilename:
-            self.logger.err('Cannot load a mask file without a corresponding dat file! Exiting...')
+            self.primaryDS = None
+            self.maskDS = self._data_reader(maskfilename)
         else:
             # not sure if this should be left to subclasses?
+            # for now, no, subclasses expect pre-initialized DataSets
             self._init_datasets()
 
     def write_data(self, fileprefix):
@@ -61,15 +64,6 @@ class TimeseriesCore(object):
         self.maskDS = DataSet._DataSet()
         self.maskDS.is_mask = True
 
-    # def _datasets_to_dicts(self):
-    #     """Call the _simplify_indexing method of each DataSet object to build
-    # dictionaries based on measurement names"""
-    #
-    #     if self.primaryDS.populated:
-    #         self.primary = self.primaryDS.simplify_indexing()
-    #     if self.maskDS.populated:
-    #         self.mask = self.primaryDS.simplify_indexing()
-
     def _custom_dataset(self):
         """Return an initialized DataSet object for customization."""
 
@@ -90,6 +84,7 @@ class TimeseriesCore(object):
     >stepsize # OPTIONAL how long (in ps) is each timestep in trajectory
     >pdbname # OPTIONAL pdb file used to generate measurements
     >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
+    >feature_list_type # OPTIONAL static or dynamic - needed for merging dat files
     >measure # name, type, and selection algebra defining a measurement
     >fields # 'time' and measure names:subnames as column headers
     >endheader # ends the header section
@@ -131,6 +126,8 @@ class TimeseriesCore(object):
             output_lines.append('>mask True\n')
         else:
             output_lines.append('>mask False\n')
+        if dataset.feature_list_type:
+            output_lines.append('>feature_list_type %s\n' % dataset.feature_list_type)
         for meas in dataset.measurements:
             output_lines.append('>measure %s %s \"%s\"\n' % (meas.name, meas.type, meas.selecttext))
         # write out column headers
@@ -169,16 +166,18 @@ class TimeseriesCore(object):
                 datfile.write(''.join(output_lines))
             self.logger.msg('Finished writing output to: %s' % outfilename)
 
-    def _data_reader(self, infilename, mask):
+    def _data_reader(self, infilename, enforce_version=False):
         """Rebuild DataSet from saved measurements in a .dat file.
 
     Arguments:
     infile - string; name of file to read
+
+    Keyword Arguments:
+    enforce_version - boolean; if True turn on strict version checking - reading will fail if file
+        version is not the most current
     """
 
         self.logger.msg('Reading data file: %s' % infilename)
-        if mask:
-            self.logger.msg('Expecting file %s to be of special type \'mask\'' % infilename)
         tmpversion = None
         tmpDataSet = DataSet._DataSet()
         # open and read input file
@@ -220,12 +219,12 @@ class TimeseriesCore(object):
                     read_mask = False
                 else:
                     self.logger.err('Cannot determine if file %s is data or mask. Exiting...' % infilename)
-                if read_mask != mask:
-                    self.logger.err('Mismatch between expected filetype (mask or dat) and what was found in %s. Exiting...' % infilename)
             elif leader == '>stepsize(ps)':
                 tmpDataSet.traj_stepsize = int(p.split()[1])
             elif leader == '>framerange':
                 tmpDataSet.framerange = (int(p.split()[1]),int(p.split()[2]),int(p.split()[3]))
+            elif leader == '>feature_list_type':
+                tmpDataSet.feature_list_type = p.split()[1]
             # parse the more complicated lines
             # use '>measure' lines to compose descriptions
             elif leader == '>measure':
@@ -244,7 +243,7 @@ class TimeseriesCore(object):
                         if name == meas.name:
                             meas.incr_width()
         # version check
-        self._check_file_version(tmpversion)
+        self._check_file_version(tmpversion, enforce_version)
         # process data lines
         tmplist = []
         tmptime = []
@@ -266,12 +265,17 @@ class TimeseriesCore(object):
         self.logger.msg('Finished reading file: %s' % infilename)
         return tmpDataSet
 
-    def _check_file_version(self, version_number):
+    def _check_file_version(self, version_number, enforce):
+        # in some cases, we must fail on any mismatch
+        if (enforce == True) and (version_number != self.file_format_version):
+            self.logger.exit('File version %s cannot be processed! Exiting...' % version_number)
         if version_number is None:
-            self.logger.msg('Warning! Cannot detect filetype version!')
+            self.logger.msg('Warning! Cannot detect file version!')
         elif version_number != self.file_format_version:
-            # in the future, some versions may become obsolete and processing should stop here
-            pass
+            # in the future, some versions may become obsolete and processing should stop here if detected
+            self.logger.msg('Warning! File version is not current! Some operations may not be supported.')
+
+
 
 class _TSLogger(object):
     """A simple class to log and print actions taken by TimeseriesCore and child objects."""

@@ -15,6 +15,7 @@ class _DataSet(object):
         self.traj_stepsize = None # in picoseconds
         self.pdbname = None # path to pdb file
         self.framerange = None # all frames, no skipping
+        self.feature_list_type = None # 'static' or 'dynamic' - helps with post-processing logic
 
     def copy_metadata(self, target):
         """Copy metadata from another DataSet instance (i.e. from primaryDS to maskDS)."""
@@ -26,6 +27,13 @@ class _DataSet(object):
         self.traj_stepsize = target.traj_stepsize
         self.pdbname = target.pdbname
         self.framerange = target.framerange
+        self.feature_list_type = target.feature_list_type
+
+    def set_static(self):
+        self.feature_list_type = 'static'
+
+    def set_dynamic(self):
+        self.feature_list_type = 'dynamic'
 
     def add_measurement(self, descriptor, width=0):
         self.measurements.append(_Measurement(descriptor, width=width))

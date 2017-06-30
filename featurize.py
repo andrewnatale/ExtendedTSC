@@ -108,13 +108,21 @@ except:
 else:
     # merge data sets
     for key in feature_sets:
-        mergelist =[]
+        mergelist = []
+        maskmergelist = []
         for filename in os.listdir(os.getcwd()):
             if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('.dat'):
                 mergelist.append(filename)
+            if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('mask.dat'):
+                maskmergelist.append(filename)
+        mergelist = sorted(set(mergelist)-set(maskmergelist))
         b = MergeDS()
         b.merge_along_time(sorted(mergelist))
         b.write_data('%s_%s_all_frames' % (options['job_name'], key))
+        if len(maskmergelist) > 0:
+            c = MergeDS()
+            c.merge_along_time(sorted(maskmergelist))
+            c.write_data('%s_%s_all_frames.mask' % (options['job_name'], key))
 finally:
     if options['copy_to']:
         if options['copy_to'] != options['input_prefix']:
