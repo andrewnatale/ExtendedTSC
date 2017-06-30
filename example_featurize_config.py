@@ -4,7 +4,7 @@ options = \
 'input_prefix' : '/path/to/indir',
 'copy_to': '/path/to/ramdisk',
 'output_prefix' : '/path/to/outdir',
-'num_processes' : 5,
+'num_proc' : 5,
 'chunksize' : 50,
 'stride' : 1
 }

@@ -29,6 +29,7 @@ class MergeDS(TimeseriesCore):
         # load specified files into lists of DataSet objects
         dats = []
         for filename in datlist:
+            self.logger.msg('Loading %s for merge operation...' % filename)
             dats.append(self._data_reader(filename, enforce_version=True))
         # extract parameters from the first DataSet in the list and compare to all the others
         test_width = dats[0].get_width()
@@ -44,7 +45,7 @@ class MergeDS(TimeseriesCore):
         for elem in dats[1:]:
             if (elem.framerange[2] != test_stride) \
               or (elem.is_mask != test_is_mask) \
-              or (elem.test_feature_list_type != elem.feature_list_type):
+              or (elem.feature_list_type != elem.feature_list_type):
                 self.logger.exit('Failed to merge DataSets due to property mismatch! Exiting...')
         # conditional checks
         for elem in dats[1:]:
@@ -98,7 +99,7 @@ class MergeDS(TimeseriesCore):
             total_length = 0
             for elem in dats:
                 for meas in elem.measurements:
-                    featureset.add((meas.name, meas.type, meas.selecttext, meas.get_width()))
+                    featureset.add((meas.name, meas.type, meas.selecttext, meas.width))
                 total_length += elem.get_length()
             # get the final width of the array
             total_width = np.sum([i[3] for i in featureset])
@@ -123,7 +124,9 @@ class MergeDS(TimeseriesCore):
                     if key in feature_dict.keys():
                         start_width_idx = feature_dict[key][3]
                         end_width_idx = feature_dict[key][4]
-                    tmparray[start_width_idx:end_width_idx,start_time_idx:end_time_idx] = tmp_dict[key]
+                        tmparray[start_width_idx:end_width_idx,start_time_idx:end_time_idx] = tmp_dict[key]
+                del start_width_idx
+                del end_width_idx
                 start_time_idx = end_time_idx
             # finish up
             for elem in sorted(feature_dict.values(), key=lambda x: x[3]):

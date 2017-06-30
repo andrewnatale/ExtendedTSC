@@ -105,6 +105,7 @@ try:
 except:
     print 'Something went wrong in the multiprocessing pool!!'
     print 'Output files may be missing or contain errors!!'
+    raise
 else:
     # merge data sets
     for key in feature_sets:
