@@ -8,20 +8,20 @@ from core.TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-#reports = ['traakWT_full_npt','traakWT_S1S3','traakWT_S2S4','traakG124I_full_npt','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
-reports = ['traakWT_full_npt','traakG124I_full_npt','traakTM4_npt']
+reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
+#reports = ['traakWT_full_npt','traakG124I_full_npt','traakTM4_npt']
 report_name = reports[rep_idx]
 dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/traj_features/'
-tgt_data = '200ps'
+tgt_data = '500ps'
 # load data sets
 a = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'basic_meas', report_name+'.basic.dat'))
 b = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.dat'),maskfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.mask.dat'))
 bw = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'core_volume_tracking', report_name+'.core_vol.tip3.dat'))
 # make data sets indexable
-basic = a.primaryDS.simplify_indexing(return_dict=True)
-klipid = b.primaryDS.simplify_indexing(return_dict=True)
-mask = b.maskDS.simplify_indexing(return_dict=True)
-waterZ = bw.primaryDS.simplify_indexing(return_dict=True)
+basic = a.primaryDS.dataset_to_dict()
+klipid = b.primaryDS.dataset_to_dict()
+mask = b.maskDS.dataset_to_dict()
+waterZ = bw.primaryDS.dataset_to_dict()
 
 # choose reference lines
 use_ref = ['TRAAK','TREK2']
@@ -58,9 +58,9 @@ orientB = np.sum((etaB - betaB) * SFunitV, axis=0)
 plt.figure()
 gs = GridSpec(3,2)
 gs.update(hspace=0.3)
-#ax1 = plt.subplot(gs[0:2,0])
-ax6 = plt.subplot(gs[0,0])
-ax7 = plt.subplot(gs[1,0])
+ax1 = plt.subplot(gs[0:2,0])
+# ax6 = plt.subplot(gs[0,0])
+# ax7 = plt.subplot(gs[1,0])
 ax2 = plt.subplot(gs[2,0])
 ax3 = plt.subplot(gs[0,1])
 ax4 = plt.subplot(gs[1,1])
@@ -193,11 +193,11 @@ def process_refs(data_dict):
     return pore_width,fenA,fenB,trp_gapA,trp_gapB,expA,expB,wingA,wingB,trp_oriA,trp_oriB
 
 # setup reference points
-traakWT_ref = process_refs(ref_data[0].primaryDS.simplify_indexing())
-downAB = process_refs(ref_data[3].primaryDS.simplify_indexing())
-downCD = process_refs(ref_data[4].primaryDS.simplify_indexing())
-upAB = process_refs(ref_data[5].primaryDS.simplify_indexing())
-upCD = process_refs(ref_data[6].primaryDS.simplify_indexing())
+traakWT_ref = process_refs(ref_data[0].primaryDS.dataset_to_dict())
+downAB = process_refs(ref_data[3].primaryDS.dataset_to_dict())
+downCD = process_refs(ref_data[4].primaryDS.dataset_to_dict())
+upAB = process_refs(ref_data[5].primaryDS.dataset_to_dict())
+upCD = process_refs(ref_data[6].primaryDS.dataset_to_dict())
 
 if ref_name == 'TRAAK':
     ref_labels = ('TRAAKwt_A', 'TRAAKwt_B')
@@ -231,7 +231,7 @@ else:
     ref_trp_ori_labels = None
 
 # setup axes
-#pore_vol_occupancy(ax1,plotname='Filter and pore occupancy',xlabel=None)
+pore_vol_occupancy(ax1,plotname='Filter and pore occupancy',xlabel=None)
 
 timeseries(
            ax2,
@@ -284,25 +284,25 @@ timeseries(
            ylimits=[-7,7]
            )
 
-timeseries(
-           ax6,
-           datalist=[basic['trp_gapA'][0,:],basic['trp_gapB'][0,:]],
-           time=basic['time'][0,:],
-           datalabels=['subunit A','subunit B'],
-           ylabel='Angstroms',
-           plotname='P1-M4 distance',
-           ylimits=[4,14]
-           )
-
-timeseries(
-           ax7,
-           datalist=[basic['expA'][0,:],basic['expB'][0,:]],
-           time=basic['time'][0,:],
-           datalabels=['subunit A','subunit B'],
-           ylabel='Angstroms',
-           plotname='M2-M4 bundle gap',
-           ylimits=[6,16]
-           )
+# timeseries(
+#            ax6,
+#            datalist=[basic['trp_gapA'][0,:],basic['trp_gapB'][0,:]],
+#            time=basic['time'][0,:],
+#            datalabels=['subunit A','subunit B'],
+#            ylabel='Angstroms',
+#            plotname='P1-M4 distance',
+#            ylimits=[4,14]
+#            )
+#
+# timeseries(
+#            ax7,
+#            datalist=[basic['expA'][0,:],basic['expB'][0,:]],
+#            time=basic['time'][0,:],
+#            datalabels=['subunit A','subunit B'],
+#            ylabel='Angstroms',
+#            plotname='M2-M4 bundle gap',
+#            ylimits=[6,16]
+#            )
 
 
 plt.suptitle(report_name, fontsize=20)

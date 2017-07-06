@@ -275,8 +275,6 @@ class TimeseriesCore(object):
             # in the future, some versions may become obsolete and processing should stop here if detected
             self.logger.msg('Warning! File version is not current! Some operations may not be supported.')
 
-
-
 class _TSLogger(object):
     """A simple class to log and print actions taken by TimeseriesCore and child objects."""
 

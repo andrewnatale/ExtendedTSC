@@ -14,7 +14,7 @@ except IndexError:
     psffile = None
     dcdfile = None
 
-input_prefix = '/Volumes/data/andrew'
+input_prefix = '/Users/anatale/school/UCSF/Grabe_lab/data'
 
 outtag = 'bin'+str(delta)
 
@@ -26,22 +26,14 @@ if psffile and dcdfile:
 else:
     # hardcode filenames for batch process
     filepairs = [
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_full_trimmed/traakG124I_full.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/topo.traakG124I_S1S3_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S1S3_trimmed/traakG124I_S1S3.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/topo.traakG124I_S2S4_npt.psf'),
-     os.path.join(input_prefix, 'lolicato_mutant_traak/traakG124I_S2S4_trimmed/traakG124I_S2S4.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_full_trimmed/traakWT_full.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/topo.traakWT_S1S3_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S1S3_trimmed/traakWT_S1S3.new_align.500ps.dcd')),
-    (os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/topo.traakWT_S2S4_npt.psf'),
-     os.path.join(input_prefix, 'mackinnon_traak/traakWT_S2S4_trimmed/traakWT_S2S4.new_align.500ps.dcd'))
+    (os.path.join(input_prefix, 'traakG124I_full_trimmed/topo.traakG124I_full_npt.psf'),
+     os.path.join(input_prefix, 'traakG124I_full_trimmed/traakG124I_full_npt.all.200ps.filter_alignZ.dcd')),
+    (os.path.join(input_prefix, 'traakWT_full_trimmed/topo.traakWT_full_npt.psf'),
+     os.path.join(input_prefix, 'traakWT_full_trimmed/traakWT_full_npt.all.200ps.filter_alignZ.dcd')),
     ]
     filepairsTM4 = [
     (os.path.join(input_prefix, 'traakTM4_trimmed/topo.traakTM4_npt.psf'),
-     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4.new_align.500ps.dcd')),
+     os.path.join(input_prefix, 'traakTM4_trimmed/traakTM4_npt.all.200ps.filter_alignZ.dcd')),
     ]
 
 def taildensity(universe, outdir, outtag):
@@ -55,18 +47,18 @@ def taildensity(universe, outdir, outtag):
       name C312 or name C313 or name C314 or name C315 or name C316")
     #print D.grid
     print np.shape(D.grid)
-    D.grid = D.grid / np.amax(D.grid)
+    #D.grid = D.grid / np.amax(D.grid)
 
-    D.export(os.path.join(outdir,'taildensity_%s.dx' % outtag))
+    D.export(os.path.join(outdir,'new_taildensity_%s.dx' % outtag))
 
 def phosdensity(universe, outdir, outtag):
     D = density_from_Universe(universe, delta=delta, padding=padding, atomselection="\
       resname POPC and name P")
     #print D.grid
     print np.shape(D.grid)
-    D.grid = D.grid / np.amax(D.grid)
+    #D.grid = D.grid / np.amax(D.grid)
 
-    D.export(os.path.join(outdir,'phosdensity_%s.dx' % outtag))
+    D.export(os.path.join(outdir,'new_phosdensity_%s.dx' % outtag))
 
 for pair in filepairs+filepairsTM4:
     u = md.Universe(pair[0],pair[1])
