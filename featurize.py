@@ -123,7 +123,7 @@ else:
                 mergelist.append(filename)
             if filename.startswith('%s_%s' % (options['job_name'], key)) \
               and filename.endswith('mask.dat') \
-              and len(filename) == (len(options['job_name']+key)+14):
+              and len(filename) == (len(options['job_name']+key)+15):
                 maskmergelist.append(filename)
         b = MergeDS()
         b.merge_along_time(sorted(mergelist))
