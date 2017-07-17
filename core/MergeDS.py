@@ -46,22 +46,22 @@ class MergeDS(TimeseriesCore):
             if (elem.framerange[2] != test_stride) \
               or (elem.is_mask != test_is_mask) \
               or (elem.feature_list_type != elem.feature_list_type):
-                self.logger.exit('Failed to merge DataSets due to property mismatch! Exiting...')
+                self.logger.err('Failed to merge DataSets due to property mismatch! Exiting...')
         # conditional checks
         for elem in dats[1:]:
             # static feature lists checks
             if test_feature_list_type == 'static':
                 if elem.count_measurements() != test_n_features:
-                    self.logger.exit('Failed to merge DataSets due to different feature counts! Exiting...')
+                    self.logger.err('Failed to merge DataSets due to different feature counts! Exiting...')
                 elif (elem.get_width() != test_width) and (test_n_features != 1):
-                    self.logger.exit('Failed to merge DataSets due to different data widths and feature count > 1! Exiting...')
+                    self.logger.err('Failed to merge DataSets due to different data widths and feature count > 1! Exiting...')
                 elif (elem.get_width() != test_width) and (test_n_features == 1):
                     self.logger.msg('Warning, data width mismatch! This is expected for some DataSets as long as the feature count = 1.\nArrays will be padded with \'nan\' as needed to match.')
                     pad_with_nan = True
             elif test_feature_list_type == 'dynamic':
                 pass
             else:
-                self.logger.exit('Cannot detect feature_list_type! Exiting...')
+                self.logger.err('Cannot detect feature_list_type! Exiting...')
             # check if last frame of preceding file matches first frame of this one
             if last_frame != elem.framerange[0]:
                 self.logger.msg('Warning! Apparent overlap or missing frames during merge!')

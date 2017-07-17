@@ -115,12 +115,16 @@ else:
     for key in feature_sets:
         mergelist = []
         maskmergelist = []
-        for filename in os.listdir(os.getcwd()):
-            if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('.dat'):
+        for filename in sorted(os.listdir(os.getcwd())):
+            # since this script wrote the files, they should have very predictable filename lengths
+            if filename.startswith('%s_%s' % (options['job_name'], key)) \
+              and filename.endswith('.dat') \
+              and len(filename) == (len(options['job_name']+key)+10):
                 mergelist.append(filename)
-            if filename.startswith('%s_%s' % (options['job_name'], key)) and filename.endswith('mask.dat'):
+            if filename.startswith('%s_%s' % (options['job_name'], key)) \
+              and filename.endswith('mask.dat') \
+              and len(filename) == (len(options['job_name']+key)+14):
                 maskmergelist.append(filename)
-        mergelist = sorted(set(mergelist)-set(maskmergelist))
         b = MergeDS()
         b.merge_along_time(sorted(mergelist))
         b.write_data('%s_%s_all_frames' % (options['job_name'], key))

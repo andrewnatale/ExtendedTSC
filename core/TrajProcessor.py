@@ -40,7 +40,7 @@ class TrajProcessor(TimeseriesCore):
             if input_type != 'pdb' and input_type in self.valid_data_types:
                 self.input_type = input_type
             else:
-                self.logger.exit('Invalid input type for Universe loading! Exiting...')
+                self.logger.err('Invalid input type for Universe loading! Exiting...')
         else:
             self.logger.err('Can only handle one trajectory or structure per instance! Exiting...')
 

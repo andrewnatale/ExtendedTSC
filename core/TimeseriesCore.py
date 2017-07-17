@@ -268,7 +268,7 @@ class TimeseriesCore(object):
     def _check_file_version(self, version_number, enforce):
         # in some cases, we must fail on any mismatch
         if (enforce == True) and (version_number != self.file_format_version):
-            self.logger.exit('File version %s cannot be processed! Exiting...' % version_number)
+            self.logger.err('File version %s cannot be processed! Exiting...' % version_number)
         if version_number is None:
             self.logger.msg('Warning! Cannot detect file version!')
         elif version_number != self.file_format_version:
