@@ -12,11 +12,7 @@ class TrajProcessor(TimeseriesCore):
 
     def load_universe(self, universe, traj_stepsize, framerange=None, input_type='generic_traj', toponame=None, trajname=None):
         """Load a preinitialized MDAnalysis Universe object. This can be useful if you need to
-    customize Universe generation or want to pass the same Universe to multiple TrajProcessor
-    instances for parallel processing.
-
-    WARNING: This needs extra testing to ensure MDA's trajectory API can handle parallel access
-    to the same trajectory reader object without exploding!
+    customize Universe generation.
 
     Arguments:
     universe - MDAnalysis Universe object

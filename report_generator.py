@@ -8,10 +8,10 @@ from core.TimeseriesCore import TimeseriesCore
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
-reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4_npt']
+reports = ['traakWT_full','traakWT_S1S3','traakWT_S2S4','traakG124I_full','traakG124I_S1S3','traakG124I_S2S4','traakTM4']
 #reports = ['traakWT_full_npt','traakG124I_full_npt','traakTM4_npt']
 report_name = reports[rep_idx]
-dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/traj_features/'
+dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/features_traak/'
 tgt_data = '500ps'
 # load data sets
 a = TimeseriesCore(datfilename=os.path.join(dat_root_dir, tgt_data, 'basic_meas', report_name+'.basic.dat'))

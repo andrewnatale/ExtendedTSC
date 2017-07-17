@@ -9,7 +9,7 @@ from core.TimeseriesCore import TimeseriesCore
 # choose report to plot
 rep_idx = int(sys.argv[1])
 reports = ['traakWT_full_npt','traakWT_s1s3_npt','traakWT_s2s4_npt','traakG124I_full_npt','traakG124I_s1s3_npt','traakG124I_s2s4_npt','traakTM4_npt']
-dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/traj_features'
+dat_root_dir = '/Users/anatale/school/UCSF/Grabe_lab/data/features_traak'
 tgt_data = '50ps/pore_features'
 
 report_name = reports[rep_idx]
