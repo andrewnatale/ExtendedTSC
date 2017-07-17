@@ -19,10 +19,18 @@ feature_set_types = [
 'zsearch' # use Zsearch
 ]
 
+# prep output dir and go there
+try:
+    os.makedirs(options['output_prefix'])
+except OSError:
+    if not os.path.isdir(options['output_prefix']):
+        raise
+os.chdir(options['output_prefix'])
+
 # optionally copy input files to another location (like a ramdisk) before loading
 if options['copy_to']:
     try:
-        os.mkdir(options['copy_to'])
+        os.makedirs(options['copy_to'])
     except OSError:
         if not os.path.isdir(options['copy_to']):
             raise
@@ -31,14 +39,6 @@ if options['copy_to']:
     input_prefix = options['copy_to']
 else:
     input_prefix = options['input_prefix']
-
-# prep output dir and go there
-try:
-    os.mkdir(options['output_prefix'])
-except OSError:
-    if not os.path.isdir(options['output_prefix']):
-        raise
-os.chdir(options['output_prefix'])
 
 # init universe, but only to get n_frames
 throwaway = mda.Universe(
