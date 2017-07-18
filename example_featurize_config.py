@@ -19,33 +19,33 @@ universe_recipe = \
 
 feature_sets = \
 {
-    'simple_set' :
-        {
-        'feature_set_type' : 'simple',
-        'descriptorlist' : ''
-        }
-    ,
-    'vtrack_set' :
-        {
-        'feature_set_type' : 'vtrack',
-        'volselectext' : '',
-        'searchselectext' : ''
-        }
-    ,
-    'zsearch_set' :
-        {
-        'feature_set_type' : 'zsearch',
-        'volselectext' : '',
-        'searchselectext' : ''
-        }
-    ,
-    'rmsd_set' :
-        {
-        'feature_set_type' : 'rmsd',
-        'selecttext' : '',
-        'ref_frame' : 0,
-        'pdbname' : None,
-        'alt_selecttext' : None,
-        'align' : False
-        }
+'simple_set' :
+    {
+    'feature_set_type' : 'simple',
+    'descriptorlist' : ''
+    }
+,
+'vtrack_set' :
+    {
+    'feature_set_type' : 'vtrack',
+    'volselectext' : '',
+    'searchselectext' : ''
+    }
+,
+'zsearch_set' :
+    {
+    'feature_set_type' : 'zsearch',
+    'volselectext' : '',
+    'searchselectext' : ''
+    }
+,
+'rmsd_set' :
+    {
+    'feature_set_type' : 'rmsd',
+    'selecttext' : '',
+    'ref_frame' : 0,
+    'pdbname' : None,
+    'alt_selecttext' : None,
+    'align' : False
+    }
 }

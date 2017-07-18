@@ -17,7 +17,7 @@ class TimeseriesCore(object):
     datfile - string; path to ExtendedTSC format dat file (non-mask)
     maskfile - string; path to ExtendedTSC format dat file (mask)
     verbose - boolean; if True, print to stdout while running
-    log - boolean; if True, write script output to a log file in the cwd
+    log - string; name to use for writing a logfile in the cwd
     """
 
         # init logger

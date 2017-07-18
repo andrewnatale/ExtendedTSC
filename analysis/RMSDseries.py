@@ -48,7 +48,7 @@ class RMSDseries(TrajProcessor):
                 descriptor = ('rmsdseries', 'RMSD', selecttext)
             # selections must match in length
             if len(tgt) != len(pdbselect):
-                self.logger.err('Atom selections for RMSD calculation are not the same size!\n PDB selection contains %d atoms, while trajectory selection contains %d.\n Exiting...' % (len(tmpselect),len(tgt)))
+                self.logger.err('Atom selections for RMSD calculation are not the same size!\n PDB selection contains %d atoms, while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
         else:
             self.primaryDS.rmsd_reference = 'frame %d \"%s\"' % (frame, selecttext)
             # target atom selection in trajectory
@@ -89,7 +89,7 @@ class _simpleRMSD(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        #print self._ts
+        print self._ts
         this_frame_tgt = self.target.positions
         self.rmsd_list.append(rmsd(this_frame_tgt,self.reference, center=self.do_center, superposition=self.do_superpose))
 
