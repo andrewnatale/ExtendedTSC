@@ -16,6 +16,7 @@ class _DataSet(object):
         self.pdbname = None # path to pdb file
         self.framerange = None # all frames, no skipping
         self.feature_list_type = None # 'static' or 'dynamic' - helps with post-processing logic
+        self.rmsd_reference = None # only used for RMSD measurement type, either a filename or a frame number
 
     def copy_metadata(self, target):
         """Copy metadata from another DataSet instance (i.e. from primaryDS to maskDS)."""
@@ -28,6 +29,7 @@ class _DataSet(object):
         self.pdbname = target.pdbname
         self.framerange = target.framerange
         self.feature_list_type = target.feature_list_type
+        self.rmsd_reference = target.rmsd_reference
 
     def set_static(self):
         self.feature_list_type = 'static'

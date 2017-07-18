@@ -83,6 +83,7 @@ class TimeseriesCore(object):
     >trajname # OPTIONAL trajectory file(s) used to generate measurements
     >stepsize # OPTIONAL how long (in ps) is each timestep in trajectory
     >pdbname # OPTIONAL pdb file used to generate measurements
+    >rmsd_reference # OPTIONAL describes the reference structure used for rmsd calculations
     >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
     >feature_list_type # OPTIONAL static or dynamic - needed for merging dat files
     >measure # name, type, and selection algebra defining a measurement
@@ -118,9 +119,11 @@ class TimeseriesCore(object):
         if dataset.traj_stepsize:
             output_lines.append('>stepsize(ps) %d\n' % dataset.traj_stepsize)
         if dataset.framerange:
-            output_lines.append('>framerange %d %d %d (start, stop, skip)\n' % (dataset.framerange[0],dataset.framerange[1],dataset.framerange[2]))
+            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (dataset.framerange[0],dataset.framerange[1],dataset.framerange[2]))
         if dataset.pdbname:
             output_lines.append('>pdbname %s\n' % dataset.pdbname)
+        if dataset.rmsd_reference:
+            output_lines.append('>rmsd_reference %s\n' % dataset.rmsd_reference)
         # obligatory fields
         if dataset.is_mask:
             output_lines.append('>mask True\n')
@@ -212,6 +215,8 @@ class TimeseriesCore(object):
                 tmpDataSet.trajname = p.split()[1]
             elif leader == '>pdbname':
                 tmpDataSet.pdbname = p.split()[1]
+            elif leader == '>rmsd_reference':
+                tmpDataSet.rmsd_reference = ' '.join(p.split()[1:])
             elif leader == '>mask':
                 if p.split()[1] == 'True':
                     read_mask = True

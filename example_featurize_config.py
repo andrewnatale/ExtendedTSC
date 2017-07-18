@@ -38,4 +38,14 @@ feature_sets = \
         'volselectext' : '',
         'searchselectext' : ''
         }
+    ,
+    'rmsd_set' :
+        {
+        'feature_set_type' : 'rmsd',
+        'selecttext' : '',
+        'ref_frame' : 0,
+        'pdbname' : None,
+        'alt_selecttext' : None,
+        'align' : False
+        }
 }

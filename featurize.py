@@ -5,6 +5,7 @@ import MDAnalysis as mda
 from analysis.SimpleFeatures import SimpleFeatures
 from analysis.VolumeTracker import VolumeTracker
 from analysis.ZSearch import ZSearch
+from analysis.RMSDseries import RMSDseries
 from core.MergeDS import MergeDS
 
 # load config file
@@ -16,7 +17,8 @@ execfile(configfile)
 feature_set_types = [
 'simple', # use SimpleFeatures
 'vtrack', # use VolumeTracker
-'zsearch' # use Zsearch
+'zsearch', # use Zsearch
+'rmsd' # use RMSDseries
 ]
 
 # prep output dir and go there
@@ -88,6 +90,8 @@ def job_runner(opts):
         a = VolumeTracker(verbose=True,log=outname+'.log')
     elif fst == 'zsearch':
         a = ZSearch(verbose=True,log=outname+'.log')
+    elif fst == 'rmsd':
+        a = RMSDseries(verbose=True,log=outname+'.log')
     # re-load universe
     a.load_dcd(
       os.path.join(input_prefix, universe_recipe['toponame']),
@@ -102,6 +106,14 @@ def job_runner(opts):
         a.run(feature_set_options['volselectext'], feature_set_options['searchselectext'])
     elif fst == 'zsearch':
         a.run(feature_set_options['volselectext'], feature_set_options['searchselectext'])
+    elif fst == 'rmsd':
+        a.run(
+          feature_set_options['selecttext'],
+          frame=feature_set_options['ref_frame'],
+          pdbname=feature_set_options['pdbname'],
+          alt_selecttext=feature_set_options['alt_selecttext'],
+          align=feature_set_options['align']
+          )
     a.write_data(outname)
 
 try:
