@@ -1,10 +1,12 @@
+from __future__ import print_function
+import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis.core.Timeseries as tm
-from core.TrajProcessor import TrajProcessor
+from core.TimeseriesCore import TimeseriesCore
 from base.GenericTSC import _GenericTSC
 
-class SimpleFeatures(TrajProcessor):
+class SimpleFeatures(TimeseriesCore):
     """Reference class for analyzers that need to make certain simple types of measurements using
     either MDAnalysis.core.Timeseries.TimeseriesCollection (fast - for DCD files) or the builtin
     _GenericTSC (slower, but works with anuything MDAnalysis can read). Use a list of selection
@@ -32,11 +34,11 @@ class SimpleFeatures(TrajProcessor):
 
         # check that the primary DataSet object has been properly initialized
         if not self.primaryDS:
-            self.logger.err('DataSet not properly initialized! Exiting...')
+            sys.exit('DataSet not properly initialized! Exiting...')
         elif self.primaryDS.count_measurements() == 0:
-            self.logger.err('No measurement descriptors found in DataSet. Exiting...')
+            sys.exit('No measurement descriptors found in DataSet. Exiting...')
         elif self.primaryDS.populated is True:
-            self.logger.err('DataSet object already contains an array, cannot generate another! Exiting...')
+            sys.exit('DataSet object already contains an array, cannot generate another! Exiting...')
         # check that measurement objects behave as expected on the input topology, and set measure widths
         for meas in self.primaryDS.measurements:
             if meas.type == 'atom':
@@ -45,44 +47,44 @@ class SimpleFeatures(TrajProcessor):
                 # in an 'atom' selection - it just measures coordinates for all of them
                 # however to keep things simpler downstream, enforce one atom selections here
                 if tmpselect.n_atoms != 1:
-                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
+                    sys.exit('Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
                       % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(3)
             elif meas.type == 'bond':
                 # not implemented
-                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
+                sys.exit('measurement type %s not implemented, exiting' % meas.type)
             elif meas.type == 'angle':
                 # not implemented
-                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
+                sys.exit('measurement type %s not implemented, exiting' % meas.type)
             elif meas.type == 'dihedral':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 4:
-                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
+                    sys.exit('Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
                       % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(1)
             elif meas.type == 'distance':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms != 2:
-                    self.logger.err('Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
+                    sys.exit('Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
                       % (meas.type, meas.selecttext, tmpselect.n_atoms))
                 meas.set_width(1)
             elif meas.type == 'COG':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms == 0:
-                    self.logger.err('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
+                    sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
                       % (meas.type, meas.selecttext))
                 meas.set_width(3)
             elif meas.type == 'COM':
                 tmpselect = self.u.select_atoms(meas.selecttext)
                 if tmpselect.n_atoms == 0:
-                    self.logger.err('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
+                    sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
                       % (meas.type, meas.selecttext))
                 meas.set_width(3)
             elif meas.type == 'water_dipole':
                 # not implemented
-                self.logger.err('measurement type %s not implemented, exiting' % meas.type)
+                sys.exit('measurement type %s not implemented, exiting' % meas.type)
             else:
-                self.logger.err('unrecognized measure type %s! Exiting...' % meas.type)
+                sys.exit('unrecognized measure type %s! Exiting...' % meas.type)
         # check input data format and call the appropriate method to generate the array
         if self.input_type == 'dcd_traj':
             tmp_array = self._DCD_timeseries()
@@ -91,7 +93,7 @@ class SimpleFeatures(TrajProcessor):
         elif self.input_type == 'pdb':
             tmp_array = self._generic_timeseries()
         else:
-            self.logger.err('Cannot determine input data format! Check trajectory initialization!')
+            sys.exit('Cannot determine input data format! Check trajectory initialization! Exiting...')
         # process the array into a DataSet object
         self.primaryDS.add_collection(tmp_array)
         self.primaryDS.setup_timesteps()

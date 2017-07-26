@@ -1,3 +1,5 @@
+from __future__ import print_function
+import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
@@ -46,18 +48,18 @@ class _VolumeSearch(AnalysisBase):
     """Class for steping through a trajectory frame by frame and tracking the
     atoms or residues that enter a specified volume."""
 
+    valid_modes = ['res', 'atom']
+
     def __init__(self,vol_selecttext,search_selecttext,mode,universe,**kwargs):
         super(_VolumeSearch,self).__init__(universe.trajectory,**kwargs)
         self.vol_selecttext = vol_selecttext
         self.search_selecttext = search_selecttext
         self.u = universe
         # check mode
-        valid_modes = ['res', 'atom']
-        if mode in valid_modes:
+        if mode in self.valid_modes:
             self.mode = mode
         else:
-            errmsg = 'Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(valid_modes)
-            sys.exit(errmsg)
+            sys.exit('Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(self.valid_modes))
 
     def _prepare(self):
         # setup vars and data structures

@@ -1,9 +1,11 @@
+from __future__ import print_function
+import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
-from core.TrajProcessor import TrajProcessor
+from core.TimeseriesCore import TimeseriesCore
 
-class ZSearch(TrajProcessor):
+class ZSearch(TimeseriesCore):
     """Similar to _VolumeSearch, but saves only the z-coordinate of each atom found in the search
     volume at each timestep."""
 

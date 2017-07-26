@@ -1,12 +1,13 @@
-import os
+from __future__ import print_function
+import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as mda
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.base import AnalysisBase
-from core.TrajProcessor import TrajProcessor
+from core.TimeseriesCore import TimeseriesCore
 
-class RMSDseries(TrajProcessor):
+class RMSDseries(TimeseriesCore):
     """Calculate RMSDs values for each frame of a trajectory against a specified reference,
     with optional alignment."""
 
@@ -48,7 +49,9 @@ class RMSDseries(TrajProcessor):
                 descriptor = ('rmsdseries', 'RMSD', selecttext)
             # selections must match in length
             if len(tgt) != len(pdbselect):
-                self.logger.err('Atom selections for RMSD calculation are not the same size!\n PDB selection contains %d atoms, while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
+                sys.exit('Atom selections for RMSD calculation are not the same size!\n\
+                  PDB selection contains %d atoms, \
+                  while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
         else:
             self.primaryDS.rmsd_reference = 'frame %d \"%s\"' % (frame, selecttext)
             # target atom selection in trajectory

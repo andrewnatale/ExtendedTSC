@@ -1,304 +1,145 @@
+from __future__ import print_function
 import sys, os, datetime
 import numpy as np
-import DataSet
+# tested and working with MDAnalysis-0.16.1
+import MDAnalysis as mda
+from DataSet import DataSet
 
 class TimeseriesCore(object):
-    """ExtendedTSC base class. On its own, this class can be used to read (and write) ExtendedTSC
-    format data files. It is subclassed in other modules to provide trajectory processing
-    functions with output to .dat files."""
+    """Base class for using MDAnalysis to analyze trajectory data and store it in DataSet objects."""
 
-    # version info
-    file_format_version = '1.1'
+    # supported input types
+    valid_data_types = ['dcd_traj','generic_traj','pdb']
 
-    def __init__(self, datfilename=None, maskfilename=None, verbose=True, log=None):
-        """Initialize TimeseriesCore and optionally load dat files.
-
-    Keyword arguments:
-    datfile - string; path to ExtendedTSC format dat file (non-mask)
-    maskfile - string; path to ExtendedTSC format dat file (mask)
-    verbose - boolean; if True, print to stdout while running
-    log - string; name to use for writing a logfile in the cwd
-    """
-
-        # init logger
-        self.logger = _TSLogger(verbose, log)
-        self.input_type = None # 'dat' 'traj' 'pdb'
-        # load a single dat/mask pair through __init__(), otherwise use load() for trajectory files
-        # for now, rely on the user to get the right kinds of files in the right place
-        if datfilename and not maskfilename:
-            self.primaryDS = self._data_reader(datfilename)
-            self.maskDS = None
-            self.input_type = 'dat'
-        elif datfilename and maskfilename:
-            self.primaryDS = self._data_reader(datfilename)
-            self.maskDS = self._data_reader(maskfilename)
-            self.input_type = 'dat'
-        elif maskfilename and not datfilename:
-            self.primaryDS = None
-            self.maskDS = self._data_reader(maskfilename)
-        else:
-            # not sure if this should be left to subclasses?
-            # for now, no, subclasses expect pre-initialized DataSets
-            self._init_datasets()
-
-    def write_data(self, fileprefix):
-        """Writes data for all populated DataSets to .dat files in the cwd.
-
-    Arguments:
-    fileprefix - string; file names without extension (.dat or .mask.dat
-        will be appended automatically)
-    """
-
-        if self.primaryDS.populated:
-            self._data_writer(self.primaryDS, outfilename=fileprefix+'.dat')
-        if self.maskDS.populated:
-            self._data_writer(self.maskDS, outfilename=fileprefix+'.mask.dat')
-
-    def _init_datasets(self):
+    def __init__(self):
         """Setup empty default DataSet objects. Subclasses should use these unless there is a good
-    reason to customize."""
+        reason to customize."""
 
-        self.primaryDS = DataSet._DataSet()
+        self.input_type = None # set later to: 'dcd_traj', 'generic_traj', or 'pdb'
+        self.primaryDS = DataSet()
         self.primaryDS.data_datetime = str(datetime.datetime.now())
         self.primaryDS.data_hostname = os.uname()[1]
-        self.maskDS = DataSet._DataSet()
+        self.maskDS = DataSet()
         self.maskDS.is_mask = True
 
     def _custom_dataset(self):
         """Return an initialized DataSet object for customization."""
 
-        custom_dataset = DataSet._DataSet()
+        custom_dataset = DataSet()
         custom_dataset.data_datetime = str(datetime.datetime.now())
         custom_dataset.data_hostname = os.uname()[1]
         return custom_dataset
 
-    def _data_writer(self, dataset, outfilename=None):
-        """Writes contents of a DataSet to a file with the following format:
+    def write_data(self, fileprefix):
+        """Writes data for all populated DataSets to .dat files in the cwd.
 
-    >header # starts the header selection, should be the first non-comment line in file
-    >version # file format version for checking compatibility
-    >hostname # system hostname of machine where the file was generated
-    >timestamp # time of file generation
-    >toponame # OPTIONAL topology file used to generate measurements
-    >trajname # OPTIONAL trajectory file(s) used to generate measurements
-    >stepsize # OPTIONAL how long (in ps) is each timestep in trajectory
-    >pdbname # OPTIONAL pdb file used to generate measurements
-    >rmsd_reference # OPTIONAL describes the reference structure used for rmsd calculations
-    >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
-    >feature_list_type # OPTIONAL static or dynamic - needed for merging dat files
-    >measure # name, type, and selection algebra defining a measurement
-    >fields # 'time' and measure names:subnames as column headers
-    >endheader # ends the header section
-    >data # data values at each timestep for each field
-    >end # marks end of file
+        Arguments:
+        fileprefix - string; file names without extension (.dat or .mask.dat
+            will be appended automatically)
+        """
 
-    NOTE: There should be NO extraneous spaces in any names or entries,
-    reading these files depends on splitting on whitespace.
+        if self.primaryDS.populated:
+            self.primaryDS.write_dat(outfilename=fileprefix+'.dat')
+        if self.maskDS.populated:
+            self.maskDS.write_dat(outfilename=fileprefix+'.mask.dat')
 
-    Arguments:
-    dataset - DataSet object; target data to process
+    def load_universe(self, universe, traj_stepsize, framerange=None, input_type='generic_traj', toponame=None, trajname=None):
+        """Load a preinitialized MDAnalysis Universe object. This can be useful if you need to
+        customize Universe generation.
 
-    Keyword arguments:
-    outfilename - string; output file name; if not specified, file lines are printed to stdout
-    """
+        Arguments:
+        universe - MDAnalysis Universe object
+        traj_stepsize - int; simulation time between frames of input trajectory
 
-        if outfilename:
-            self.logger.msg('Writing DataSet to file: %s' % outfilename)
-        # build a list of lines to write
-        output_lines = []
-        # always write this metadata
-        output_lines.append('>header\n')
-        output_lines.append('>version %s\n' % str(self.file_format_version))
-        output_lines.append('>hostname %s\n' % dataset.data_hostname)
-        output_lines.append('>timestamp %s\n' % dataset.data_datetime)
-        # optional fields
-        if dataset.toponame:
-            output_lines.append('>toponame %s\n' % dataset.toponame)
-        if dataset.trajname:
-            output_lines.append('>trajname %s\n' % dataset.trajname)
-        if dataset.traj_stepsize:
-            output_lines.append('>stepsize(ps) %d\n' % dataset.traj_stepsize)
-        if dataset.framerange:
-            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (dataset.framerange[0],dataset.framerange[1],dataset.framerange[2]))
-        if dataset.pdbname:
-            output_lines.append('>pdbname %s\n' % dataset.pdbname)
-        if dataset.rmsd_reference:
-            output_lines.append('>rmsd_reference %s\n' % dataset.rmsd_reference)
-        # obligatory fields
-        if dataset.is_mask:
-            output_lines.append('>mask True\n')
-        else:
-            output_lines.append('>mask False\n')
-        if dataset.feature_list_type:
-            output_lines.append('>feature_list_type %s\n' % dataset.feature_list_type)
-        for meas in dataset.measurements:
-            output_lines.append('>measure %s %s \"%s\"\n' % (meas.name, meas.type, meas.selecttext))
-        # write out column headers
-        output_lines.append('>fields time ')
-        for meas in dataset.measurements:
-            if meas.width == 1:
-                output_lines.append('%s ' % meas.name)
-            # coordinate data measure types
-            elif (meas.width%3 == 0) and (meas.type in ['atom', 'COG', 'COM']):
-                track = 1
-                coords = ['x','y','z']
-                for i in range(meas.width):
-                    coord = coords[i%3]
-                    output_lines.append('%s:%s%d ' % (meas.name,coord,track))
-                    if coord == 'z':
-                        track += 1
-            # for other widths, just use numbers to mark sub-measurements
+        Keyword arguments:
+        framerange - tuple; 3 integers (start, stop, and step) describing how to slice the
+            trajectory for analysis, default None == (0,-1,1)
+        input_type - string; default is generic_traj, which will work for most things, but special types
+            like 'dcd_traj' can be passed to let ExtendedTSC know to use optimizations.
+            NOTE: PDB loading is not allowed through this method!
+        toponame - string; path to topology file - not processed here, just for bookkeeping
+        trajname - string; path to trajectory file - not processed here, just for bookkeeping
+        """
+
+        if self.input_type == None:
+            print('Loading preinitialized Universe object.')
+            if toponame:
+                self.primaryDS.toponame = toponame
+            if trajname:
+                self.primaryDS.trajname = trajname
+            self.primaryDS.traj_stepsize = traj_stepsize
+            self.primaryDS.framerange = framerange
+            self.u = universe
+            if input_type != 'pdb' and input_type in self.valid_data_types:
+                self.input_type = input_type
             else:
-                for i in range(1,meas.width+1):
-                    output_lines.append('%s:%d ' % (meas.name,i))
-        output_lines.append('\n')
-        output_lines.append('>endheader\n')
-        # eunmerate over time array and write data
-        for idx,elem in np.ndenumerate(dataset.time):
-            output_lines.append('>data ')
-            output_lines.append('%s ' % str(elem))
-            output_lines.append('%s ' % ' '.join([str(i) for i in dataset.data[:,idx[0]]]))
-            output_lines.append('\n')
-        # indcate that file was written completely
-        output_lines.append('>end')
-        # either write the file or just print what would be written
-        if outfilename is None:
-            print ''.join(output_lines)
+                sys.exit('Invalid input type for Universe loading! Exiting...')
         else:
-            with open(outfilename, 'w') as datfile:
-                datfile.write(''.join(output_lines))
-            self.logger.msg('Finished writing output to: %s' % outfilename)
+            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
-    def _data_reader(self, infilename, enforce_version=False):
-        """Rebuild DataSet from saved measurements in a .dat file.
+    def load_dcd(self, psffile, dcdfile, traj_stepsize, framerange=None):
+        """Load psf topology and dcd trajectory files. For non dcd format trajectories, use
+        load_traj() method instead.
 
-    Arguments:
-    infile - string; name of file to read
+        Arguments:
+        psffile - string; path to psf format topology file
+        dcdfile_list - string; path to dcd format trajectory file
+        traj_stepsize - int; simulation time between frames of input trajectory
 
-    Keyword Arguments:
-    enforce_version - boolean; if True turn on strict version checking - reading will fail if file
-        version is not the most current
-    """
+        Keyword arguments:
+        framerange - tuple; 3 integers (start, stop, and step) describing how to slice the
+            trajectory for analysis, default None == (0,-1,1)
+        """
 
-        self.logger.msg('Reading data file: %s' % infilename)
-        tmpversion = None
-        tmpDataSet = DataSet._DataSet()
-        # open and read input file
-        with open(infilename, 'r') as datfile:
-            lines = datfile.readlines()
-        lines = [i.strip() for i in lines]
-        # superficial check to see if input file was written to completion
-        # will definitely not catch all types of problems!
-        if lines[-1] != '>end':
-            self.logger.err('Likely broken input file! Last line is not \">end\"! Exiting...')
-        # read file header
-        leader = lines[0].split()[0]
-        while leader != '>endheader':
-            p = lines.pop(0)
-            leader = p.split()[0]
-            # skip extraneous or marking lines
-            if p.startswith('#') or p == '' or leader == '>header' or leader == '>endheader':
-                pass
-            # bail if data line is found while reading header
-            elif leader == '>data':
-                self.logger.err('Data line found in header, check input file and try again!')
-            # fill basic vars from header lines, not all are required
-            elif leader == '>version':
-                tmpversion = p.split()[1]
-            elif leader == '>hostname':
-                tmpDataSet.data_hostname = ' '.join(p.split()[1:])
-            elif leader == '>timestamp':
-                tmpDataSet.data_datetime = ' '.join(p.split()[1:])
-            elif leader == '>toponame':
-                tmpDataSet.toponame = p.split()[1]
-            elif leader == '>trajname':
-                tmpDataSet.trajname = p.split()[1]
-            elif leader == '>pdbname':
-                tmpDataSet.pdbname = p.split()[1]
-            elif leader == '>rmsd_reference':
-                tmpDataSet.rmsd_reference = ' '.join(p.split()[1:])
-            elif leader == '>mask':
-                if p.split()[1] == 'True':
-                    read_mask = True
-                elif p.split()[1] == 'False':
-                    read_mask = False
-                else:
-                    self.logger.err('Cannot determine if file %s is data or mask. Exiting...' % infilename)
-            elif leader == '>stepsize(ps)':
-                tmpDataSet.traj_stepsize = int(p.split()[1])
-            elif leader == '>framerange':
-                tmpDataSet.framerange = (int(p.split()[1]),int(p.split()[2]),int(p.split()[3]))
-            elif leader == '>feature_list_type':
-                tmpDataSet.feature_list_type = p.split()[1]
-            # parse the more complicated lines
-            # use '>measure' lines to compose descriptions
-            elif leader == '>measure':
-                # compose descriptor
-                name = p.split()[1]
-                meas_type = p.split()[2]
-                selection = p.split('\"')[1]
-                descriptor = (name, meas_type, selection)
-                tmpDataSet.add_measurement(descriptor)
-            # use '>fields' line to figure out the width of each measurement
-            elif leader == '>fields':
-                fields = p.split()[1:]
-                for elem in fields:
-                    name = elem.split(':')[0]
-                    for meas in tmpDataSet.measurements:
-                        if name == meas.name:
-                            meas.incr_width()
-        # version check
-        self._check_file_version(tmpversion, enforce_version)
-        # process data lines
-        tmplist = []
-        tmptime = []
-        leader = lines[0].split()[0]
-        while leader != '>end':
-            p = lines.pop(0)
-            tmptime.append(float(p.split()[1]))
-            if read_mask:
-                tmplist.append([int(i) for i in p.split()[2:]])
-            else:
-                tmplist.append([float(i) for i in p.split()[2:]])
-            # new leader
-            leader = lines[0].split()[0]
-        # convert lists to DataSet arrays
-        tmpDataSet.add_timesteps(np.array(tmptime))
-        tmpDataSet.add_collection(np.array(tmplist).T)
-        if read_mask:
-            tmpDataSet.is_mask = True
-        self.logger.msg('Finished reading file: %s' % infilename)
-        return tmpDataSet
+        if self.input_type == None:
+            print('Attempting to load trajectory using files:\n%s\n%s' % (psffile,dcdfile))
+            self.primaryDS.toponame = os.path.abspath(psffile)
+            self.primaryDS.trajname = os.path.abspath(dcdfile)
+            self.primaryDS.traj_stepsize = traj_stepsize
+            self.primaryDS.framerange = framerange
+            # init MDA universe
+            self.u = mda.Universe(self.primaryDS.toponame,self.primaryDS.trajname,format=u'DCD')
+            self.input_type = 'dcd_traj'
+        else:
+            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
-    def _check_file_version(self, version_number, enforce):
-        # in some cases, we must fail on any mismatch
-        if (enforce == True) and (version_number != self.file_format_version):
-            self.logger.err('File version %s cannot be processed! Exiting...' % version_number)
-        if version_number is None:
-            self.logger.msg('Warning! Cannot detect file version!')
-        elif version_number != self.file_format_version:
-            # in the future, some versions may become obsolete and processing should stop here if detected
-            self.logger.msg('Warning! File version is not current! Some operations may not be supported.')
+    def load_traj(self, topofile, trajfile, traj_stepsize, framerange=None):
+        """Load topology and trajectory files (any MDAnalysis supported types).
 
-class _TSLogger(object):
-    """A simple class to log and print actions taken by TimeseriesCore and child objects."""
+        Arguments:
+        topofile - string; path to topology file
+        trajfile - string; path to trajectory file
+        traj_stepsize - int; simulation time between frames of input trajectory in ps
 
-    def __init__(self, verbose, log):
-        self.verbose = verbose
-        self.log_file = None
-        if log:
-            self.log_file = open(os.path.join(os.getcwd(), log), 'w')
+        Keyword arguments:
+        framerange - tuple; 3 integers (start, stop, and step) describing how to slice the
+            trajectory for analysis, default None == (0,-1,1)
+        """
 
-    def msg(self, msgtext):
-        if self.log_file:
-            self.log_file.write(msgtext)
-            self.log_file.write('\n')
-        if self.verbose:
-            print msgtext
+        if self.input_type == None:
+            print('Attempting to load trajectory using files:\n%s\n%s' % (topofile,trajfile))
+            self.primaryDS.toponame = os.path.abspath(topofile)
+            self.primaryDS.trajname = os.path.abspath(trajfile)
+            self.primaryDS.traj_stepsize = traj_stepsize
+            self.primaryDS.framerange = framerange
+            # init MDA universe
+            self.u = mda.Universe(self.primaryDS.toponame,self.primaryDS.trajname)
+            self.input_type = 'generic_traj'
+        else:
+            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
-    def err(self, msgtext):
-        if self.log_file:
-            self.log_file.write('Error: '+msgtext)
-            self.log_file.write('\n')
-            self.log_file.close()
-        sys.exit('Error: '+msgtext)
+    def load_pdb(self, pdbfile):
+        """Load a structure from a PDB file. PDBs are treated as single-frame trajectories.
+
+        Arguments:
+        pdbfile - string; path to pdb format file
+        """
+
+        if self.input_type == None:
+            print('Attempting to load trajectory using files:\n%s' % pdbfile)
+            self.primaryDS.pdbname = os.path.abspath(pdbfile)
+            # init universe
+            self.u = mda.Universe(self.primaryDS.pdbname, format='pdb')
+            self.input_type = 'pdb'
+        else:
+            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
