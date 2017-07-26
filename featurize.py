@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys, os, shutil
 import numpy as np
 import multiprocessing
@@ -6,7 +7,7 @@ from analysis.SimpleFeatures import SimpleFeatures
 from analysis.VolumeTracker import VolumeTracker
 from analysis.ZSearch import ZSearch
 from analysis.RMSDseries import RMSDseries
-from core.MergeDS import MergeDS
+from core.MergeDS import merge_along_time
 
 # load config file
 # provides 3 dicts; 'options', 'universe_recipe', and 'feature_sets'
@@ -120,8 +121,8 @@ try:
     mppool = multiprocessing.Pool(int(options['num_proc']))
     mppool.map(job_runner, job_array)
 except:
-    print 'Something went wrong in the multiprocessing pool!!'
-    print 'Output files may be missing or contain errors!!'
+    print('Something went wrong in the multiprocessing pool!!')
+    print('Output files may be missing or contain errors!!')
 else:
     # merge data sets
     for key in feature_sets:
@@ -137,16 +138,14 @@ else:
               and filename.endswith('mask.dat') \
               and len(filename) == (len(options['job_name']+key)+15):
                 maskmergelist.append(filename)
-        b = MergeDS()
-        b.merge_along_time(sorted(mergelist))
-        b.write_data('%s_%s_all_frames' % (options['job_name'], key))
+        b = merge_along_time(sorted(mergelist))
+        b.write_dat(outfilename='%s_%s_all_frames' % (options['job_name'], key))
         if len(maskmergelist) > 0:
-            c = MergeDS()
-            c.merge_along_time(sorted(maskmergelist))
-            c.write_data('%s_%s_all_frames.mask' % (options['job_name'], key))
+            c = merge_along_time(sorted(maskmergelist))
+            c.write_dat(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
 finally:
     if options['copy_to']:
         if options['copy_to'] != options['input_prefix']:
-            print 'Cleaning up...'
+            print('Cleaning up...')
             os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
             os.remove(os.path.join(input_prefix, universe_recipe['trajname']))
