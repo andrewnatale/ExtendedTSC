@@ -2,7 +2,7 @@ import sys, os, math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from core.TimeseriesCore import TimeseriesCore as tsc
+from core.DataSet import DataSet
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -42,11 +42,9 @@ except OSError:
     if not os.path.isdir(figures_outdir):
         raise
 
-reader = tsc()
-
 # load data
 filename = os.path.join(datfile_dir, '%s_filter_dihedrals_all_frames.dat' % report_name)
-dataset = reader._data_reader(filename)
+dataset = DataSet(infilename=filename)
 datadict = dataset.dataset_to_dict()
 
 stdtime = datadict['time'].flatten() / 1000.0

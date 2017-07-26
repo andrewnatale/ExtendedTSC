@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from matplotlib.ticker import MaxNLocator
-from core.TimeseriesCore import TimeseriesCore
+from core.DataSet import DataSet
 
 dat_root_dir = '/Users/anatale/UCSF/Grabe_lab/data/traak_data/etsc_out_20170721'
 
@@ -12,12 +12,10 @@ report_name = 'traakTM4_npt'
 
 figures_outdir = os.path.join(dat_root_dir, 'figures')
 
-reader = TimeseriesCore(verbose=False)
-
 # load data sets
 datasets = {}
-datasets['down'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_trek2down_all_frames.dat' % report_name))
-datasets['up'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_trek2up_all_frames.dat' % report_name))
+datasets['down'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_trek2down_all_frames.dat' % report_name))
+datasets['up'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_trek2up_all_frames.dat' % report_name))
 
 datadicts = {}
 for key in datasets:

@@ -1,7 +1,7 @@
 import sys, os, math
 import numpy as np
 import matplotlib.pyplot as plt
-from core.TimeseriesCore import TimeseriesCore as tsc
+from core.DataSet import DataSet
 
 datfile_dir = '/Users/anatale/UCSF/Grabe_lab/data/traak_data/etsc_out_20170718'
 
@@ -40,7 +40,7 @@ def load_raw_data():
     datasets = {}
     for elem in traj_names:
         filenames = [os.path.join(datfile_dir, '%s_%s_all_frames.dat' % (elem, i)) for i in feature_names]
-        datasets[elem] = [tsc(datfilename=i) for i in filenames]
+        datasets[elem] = [DataSet(infilename=i) for i in filenames]
     return datasets
 
 def dihedral_vis(save=False):

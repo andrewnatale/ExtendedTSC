@@ -40,13 +40,11 @@ except OSError:
     if not os.path.isdir(figures_outdir):
         raise
 
-reader = tsc()
-
 # load data
 datasets = {}
 for elem in traj_names:
     filenames = [os.path.join(datfile_dir, '%s_%s_all_frames.dat' % (elem, i)) for i in feature_names]
-    tmplist = [reader._data_reader(i) for i in filenames]
+    tmplist = [DataSet(infilename=i) for i in filenames]
     datasets[elem] = [i.dataset_to_dict() for i in tmplist]
 
 carbonyl_keys = \

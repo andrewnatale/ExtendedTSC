@@ -2,7 +2,7 @@ import sys, os, math, re
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from core.TimeseriesCore import TimeseriesCore
+from core.DataSet import DataSet
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -30,14 +30,12 @@ report_name = traj_names[rep_idx]
 
 figures_outdir = os.path.join(dat_root_dir, 'figures')
 
-reader = TimeseriesCore(verbose=False)
-
 # load data sets
 datasets = {}
-datasets['carbonyls'] = reader._data_reader(os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
-datasets['waters'] = reader._data_reader(os.path.join(dat_root_dir, '%s_pore_water_all_frames.dat' % report_name))
-datasets['lipids'] = reader._data_reader(os.path.join(dat_root_dir, '%s_pore_lipids_all_frames.dat' % report_name))
-datasets['basic'] = reader._data_reader(os.path.join(dat_root_dir, '%s_basic_features_all_frames.dat' % report_name))
+datasets['carbonyls'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
+datasets['waters'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_pore_water_all_frames.dat' % report_name))
+datasets['lipids'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_pore_lipids_all_frames.dat' % report_name))
+datasets['basic'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_basic_features_all_frames.dat' % report_name))
 
 datadicts = {}
 for key in datasets:

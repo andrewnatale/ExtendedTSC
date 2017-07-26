@@ -1,7 +1,7 @@
 import sys, os, math, re
 import numpy as np
 import matplotlib.pyplot as plt
-from core.TimeseriesCore import TimeseriesCore
+from core.DataSet import DataSet
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -29,15 +29,13 @@ report_name = traj_names[rep_idx]
 
 figures_outdir = os.path.join(dat_root_dir, 'figures')
 
-reader = TimeseriesCore(verbose=False)
-
 # load data sets
 datasets = {}
-datasets['dihedrals'] = reader._data_reader(os.path.join(dat_root_dir, '%s_filter_dihedrals_all_frames.dat' % report_name))
-datasets['carbonyls'] = reader._data_reader(os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
-datasets['waters'] = reader._data_reader(os.path.join(dat_root_dir, '%s_filter_water_all_frames.dat' % report_name))
-datasets['potassium'] = reader._data_reader(os.path.join(dat_root_dir, '%s_filter_potassium_all_frames.dat' % report_name))
-datasets['vectors'] = reader._data_reader(os.path.join(dat_root_dir, 'state_vectors', '%s_vectorized.dat' % report_name))
+datasets['dihedrals'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_dihedrals_all_frames.dat' % report_name))
+datasets['carbonyls'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
+datasets['waters'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_water_all_frames.dat' % report_name))
+datasets['potassium'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_all_frames.dat' % report_name))
+datasets['vectors'] = DataSet(infilename=os.path.join(dat_root_dir, 'state_vectors', '%s_vectorized.dat' % report_name))
 
 datadicts = {}
 for key in datasets:

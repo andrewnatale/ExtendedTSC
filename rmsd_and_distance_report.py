@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from matplotlib.ticker import MaxNLocator
-from core.TimeseriesCore import TimeseriesCore
+from core.DataSet import DataSet
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -32,17 +32,15 @@ report_name = traj_names[rep_idx]
 
 figures_outdir = os.path.join(dat_root_dir, 'figures')
 
-reader = TimeseriesCore(verbose=False)
-
 # load data sets
 datasets = {}
-datasets['basic'] = reader._data_reader(os.path.join(dat_root_dir, '%s_basic_features_all_frames.dat' % report_name))
-datasets['rmsd_tm_helices_to_wt'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_wt_all_frames.dat' % report_name))
-datasets['rmsd_tm_helices_to_mut'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_mut_all_frames.dat' % report_name))
-datasets['rmsd_pore_helices_to_wt'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_pore_helices_to_wt_all_frames.dat' % report_name))
-datasets['rmsd_pore_helices_to_mut'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_pore_helices_to_mut_all_frames.dat' % report_name))
-datasets['rmsd_selectivity_filter_to_wt'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_selectivity_filter_to_wt_all_frames.dat' % report_name))
-datasets['rmsd_selectivity_filter_to_mut'] = reader._data_reader(os.path.join(dat_root_dir, '%s_rmsd_selectivity_filter_to_mut_all_frames.dat' % report_name))
+datasets['basic'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_basic_features_all_frames.dat' % report_name))
+datasets['rmsd_tm_helices_to_wt'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_wt_all_frames.dat' % report_name))
+datasets['rmsd_tm_helices_to_mut'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_tm_helices_to_mut_all_frames.dat' % report_name))
+datasets['rmsd_pore_helices_to_wt'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_pore_helices_to_wt_all_frames.dat' % report_name))
+datasets['rmsd_pore_helices_to_mut'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_pore_helices_to_mut_all_frames.dat' % report_name))
+datasets['rmsd_selectivity_filter_to_wt'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_selectivity_filter_to_wt_all_frames.dat' % report_name))
+datasets['rmsd_selectivity_filter_to_mut'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_rmsd_selectivity_filter_to_mut_all_frames.dat' % report_name))
 
 datadicts = {}
 for key in datasets:
