@@ -32,7 +32,9 @@ class RMSDseries(TimeseriesCore):
         align - boolean; if True, center and rotate the selection to align with the reference
             before calculating RMSD for each frame
         """
-
+        
+        if self.input_type == None:
+            sys.exit('No data has been loaded, cannot run! Exiting...')
         if pdbname:
             # load pdb into its own universe
             ref_u = mda.Universe(pdbname, format='pdb')
@@ -92,7 +94,7 @@ class _simpleRMSD(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print self._ts
+        print(self._ts)
         this_frame_tgt = self.target.positions
         self.rmsd_list.append(rmsd(this_frame_tgt,self.reference, center=self.do_center, superposition=self.do_superpose))
 

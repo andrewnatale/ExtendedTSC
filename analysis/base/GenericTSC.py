@@ -23,7 +23,7 @@ class _GenericTSC(AnalysisBase):
         self.data = np.empty((total_width,self.n_frames), dtype=float)
 
     def _single_frame(self):
-        #print self._ts
+        #print(self._ts)
         for key in self.atomgroups:
             self.coordinates[key][:,self._frame_index] = np.concatenate([atom.position for atom in self.atomgroups[key]], axis=0)
 

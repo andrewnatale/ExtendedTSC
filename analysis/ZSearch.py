@@ -16,7 +16,9 @@ class ZSearch(TimeseriesCore):
     search_selecttext - string; MDAnalysis atom selection expression;
         defines what to look for in the selected volume
     """
-
+    
+        if self.input_type == None:
+            sys.exit('No data has been loaded, cannot run! Exiting...')
         self.primaryDS.set_static()
         if self.primaryDS.framerange is None:
             searcher = _SearchZ(vol_selecttext,search_selecttext,self.u)
@@ -46,7 +48,7 @@ class _SearchZ(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print self._ts
+        print(self._ts)
         tmpcoordlist = []
         for atom in self.vol_group:
             tmpcoordlist.append(atom.position[2])

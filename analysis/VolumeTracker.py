@@ -22,7 +22,9 @@ class VolumeTracker(SimpleFeatures):
     mode - string; either 'res' or 'atom'; format the resulting measurement list to give
         coordinates for each found atom, or the center of mass coordinates of found residues
     """
-
+    
+        if self.input_type == None:
+            sys.exit('No data has been loaded, cannot run! Exiting...')
         # TODO: input type check, shouldn't process pdbfiles
         self.maskDS.copy_metadata(self.primaryDS)
         self.primaryDS.set_dynamic()
@@ -69,7 +71,7 @@ class _VolumeSearch(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print self._ts
+        print(self._ts)
         tmpoccupancy = []
         for atom in self.vol_group:
             # store unique identifiers for found res/atoms

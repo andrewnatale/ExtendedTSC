@@ -26,8 +26,8 @@ class DataSet(object):
         self.feature_list_type = None # 'static' or 'dynamic' - helps with post-processing logic
         self.rmsd_reference = None # only used for RMSD measurement type, either a filename or a frame number
         # load from file
-        if self.infilename:
-            self.data_reader(infilename)
+        if infilename:
+            self.read_dat(infilename)
 
     def copy_metadata(self, target):
         """Copy metadata from another DataSet instance (i.e. from primaryDS to maskDS).
@@ -208,7 +208,7 @@ class DataSet(object):
         else:
             with open(outfilename, 'w') as datfile:
                 datfile.write(''.join(output_lines))
-           print('Finished writing output to: %s' % outfilename)
+            print('Finished writing output to: %s' % outfilename)
 
     def read_dat(self, infilename, enforce_version=False):
         """Rebuild DataSet from saved measurements in a .dat file.

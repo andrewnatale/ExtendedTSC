@@ -21,7 +21,9 @@ class SimpleFeatures(TimeseriesCore):
         type is a code recognized by the run() method
         selecttext is an MDAnalysis format atom selector expression
     """
-
+    
+        if self.input_type == None:
+            sys.exit('No data has been loaded, cannot run! Exiting...')
         # setup primaryDS using selections from a list
         for descriptor in selection_list:
             self.primaryDS.add_measurement(descriptor)
