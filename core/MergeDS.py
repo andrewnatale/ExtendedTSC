@@ -4,11 +4,12 @@ import numpy as np
 from DataSet import DataSet
 
 def merge_along_time(datlist):
-    """Load a list of datasets that contain the same features and merge them along the time
+    """
+    Load a list of datasets that contain the same features and merge them along the time
     axis to generate one longer timeseries.
 
     WARNING: Datfiles must be input in the correct time-order! This method has no way to sort
-        them itself (though I could add this by parsing framerange vars).
+        them itself (though I could add this by parsing framerange vars?).
 
     Arguments:
     datlist - list of strings; paths to dat files to merge
@@ -65,7 +66,7 @@ def merge_along_time(datlist):
     mergeDS.is_mask = test_is_mask
     # get the full framerange
     mergeDS.framerange = (first_frame, last_frame, test_stride)
-    # at this point have to diverge and use different code depending on 'static' vs 'dynamic'
+    # at this point we must diverge and use different code depending on 'static' vs 'dynamic'
     if test_feature_list_type == 'static':
         # copy measurement objects
         for meas in dats[0].measurements:
@@ -85,8 +86,8 @@ def merge_along_time(datlist):
                     mergeDS.measurements[0].set_width(elem.get_width())
         mergeDS.add_collection(np.concatenate([i.data for i in dats], axis=1))
         mergeDS.add_timesteps(np.concatenate([i.time for i in dats], axis=0))
-    # this is much more complicated, and probably more dangerous too
-    if test_feature_list_type == 'dynamic':
+    # this is much more complicated, and probably more bug prone, but it seems to work ok
+    elif test_feature_list_type == 'dynamic':
         # collect all measurement names into a set and figure out total size
         featureset = set()
         total_length = 0

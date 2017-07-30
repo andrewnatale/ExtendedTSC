@@ -32,7 +32,7 @@ class RMSDseries(TimeseriesCore):
         align - boolean; if True, center and rotate the selection to align with the reference
             before calculating RMSD for each frame
         """
-        
+
         if self.input_type == None:
             sys.exit('No data has been loaded, cannot run! Exiting...')
         if pdbname:
@@ -71,9 +71,10 @@ class RMSDseries(TimeseriesCore):
             self.superpose = True
         # run rmsd calculation
         if self.primaryDS.framerange is None:
-            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose)
+            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True)
         else:
-            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
+            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True,
+              start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
         series.run()
         self.primaryDS.add_collection(series.rmsd)
         self.primaryDS.setup_timesteps()
@@ -94,9 +95,8 @@ class _simpleRMSD(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print(self._ts)
         this_frame_tgt = self.target.positions
-        self.rmsd_list.append(rmsd(this_frame_tgt,self.reference, center=self.do_center, superposition=self.do_superpose))
+        self.rmsd_list.append(rmsd(this_frame_tgt, self.reference, center=self.do_center, superposition=self.do_superpose))
 
     def _conclude(self):
         # convert to array

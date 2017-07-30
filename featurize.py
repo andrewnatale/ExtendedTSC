@@ -13,8 +13,8 @@ from core.MergeDS import merge_along_time
 # provides 3 dicts; 'options', 'universe_recipe', and 'feature_sets'
 configfile = sys.argv[1]
 execfile(configfile)
-#print options,universe_recipe,feature_sets
 
+# implemented feature set types
 feature_set_types = [
 'simple', # use SimpleFeatures
 'vtrack', # use VolumeTracker
@@ -47,9 +47,7 @@ else:
 throwaway = mda.Universe(
   os.path.join(input_prefix, universe_recipe['toponame']),
   os.path.join(input_prefix, universe_recipe['trajname']))
-
 n_frames = throwaway.trajectory.n_frames
-del throwaway
 
 # figure out how many chunks to break each big job into
 # NOTE: the stopframe variable is non-inclusive!
@@ -69,7 +67,7 @@ while stopframe < n_frames:
     else:
         chunks.append((startframe, stopframe, 1))
 
-# build job array
+# build job array; each job takes one chunk of one feature set
 job_array = []
 for key in feature_sets:
     for idx,framerange in enumerate(chunks):
@@ -77,14 +75,14 @@ for key in feature_sets:
         while len(task_id) < 4:
             task_id = '0'+task_id
         job_array.append((key, feature_sets[key], framerange, task_id))
-#print job_array
 
+# job_runner takes a package of job options as generated above and runs ExtendedTSC
 def job_runner(opts):
     feature_set_name, feature_set_options, framerange, task_id = opts
     fst = feature_set_options['feature_set_type']
     # output tag
     outname = '%s_%s_%s' % (options['job_name'], feature_set_name, task_id)
-    # get feature set type and init
+    # get feature set type and init the proper ExtendedTSC class
     if fst == 'simple':
         a = SimpleFeatures(verbose=True,log=outname+'.log')
     elif fst == 'vtrack':
@@ -93,14 +91,14 @@ def job_runner(opts):
         a = ZSearch(verbose=True,log=outname+'.log')
     elif fst == 'rmsd':
         a = RMSDseries(verbose=True,log=outname+'.log')
-    # re-load universe
+    # load the universe
     a.load_dcd(
       os.path.join(input_prefix, universe_recipe['toponame']),
       os.path.join(input_prefix, universe_recipe['trajname']),
       universe_recipe['stepsize'],
       framerange=framerange
       )
-    # choose .run() options and calculate
+    # input .run() options and calculate
     if fst == 'simple':
         a.run(feature_set_options['descriptorlist'])
     elif fst == 'vtrack':
@@ -117,6 +115,7 @@ def job_runner(opts):
           )
     a.write_data(outname)
 
+# take job array from above and spawn one process per job
 try:
     mppool = multiprocessing.Pool(int(options['num_proc']))
     mppool.map(job_runner, job_array)
@@ -124,11 +123,12 @@ except:
     print('Something went wrong in the multiprocessing pool!!')
     print('Output files may be missing or contain errors!!')
 else:
-    # merge data sets
+    # merge data sets from individual jobs
     for key in feature_sets:
         mergelist = []
         maskmergelist = []
         for filename in sorted(os.listdir(os.getcwd())):
+            # collect all the files pertaining to a single feature set
             # since this script wrote the files, they should have very predictable filename lengths
             if filename.startswith('%s_%s' % (options['job_name'], key)) \
               and filename.endswith('.dat') \
@@ -144,6 +144,7 @@ else:
             c = merge_along_time(sorted(maskmergelist))
             c.write_dat(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
 finally:
+    # cleanup if 'copy_to' option was used
     if options['copy_to']:
         if options['copy_to'] != options['input_prefix']:
             print('Cleaning up...')

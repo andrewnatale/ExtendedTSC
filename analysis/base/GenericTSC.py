@@ -2,9 +2,11 @@ import numpy as np
 from MDAnalysis.analysis.base import AnalysisBase
 
 class _GenericTSC(AnalysisBase):
-    """Measures a variety of properties on a single pass through a trajectory. Similar in principle
+    """
+    Measures a variety of properties on a single pass through a trajectory. Similar in principle
     to MDAnalysis.core.Timeseries.TimeseriesCollection, but works with any trajectory type
-    (including pdb files) and uses the AnalysisBase API."""
+    (including pdb files) and uses the AnalysisBase API.
+    """
 
     def __init__(self,measurements,universe,**kwargs):
         super(_GenericTSC,self).__init__(universe.trajectory,**kwargs)
@@ -23,7 +25,6 @@ class _GenericTSC(AnalysisBase):
         self.data = np.empty((total_width,self.n_frames), dtype=float)
 
     def _single_frame(self):
-        #print(self._ts)
         for key in self.atomgroups:
             self.coordinates[key][:,self._frame_index] = np.concatenate([atom.position for atom in self.atomgroups[key]], axis=0)
 

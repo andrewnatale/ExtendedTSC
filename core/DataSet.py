@@ -2,13 +2,17 @@ from __future__ import print_function
 import numpy as np
 
 class DataSet(object):
-    """A class to organize a set of measurements generated together on one pass through a trajectory."""
+    """
+    A class to organize a set of measurements generated together on one pass through a trajectory.
+    Also provides methods to write and read measurements from ExtendedTSC format .dat files.
+    """
 
     current_file_verson = '1.1'
     compatible_file_versions = ['1.1',]
 
     def __init__(self, infilename=None):
-        """Keyword arguments:
+        """
+        Keyword arguments:
         infilename - string; path to .dat file
         """
         self.measurements = []
@@ -22,7 +26,7 @@ class DataSet(object):
         self.trajname = None # path to trajectory file
         self.traj_stepsize = None # in picoseconds
         self.pdbname = None # path to pdb file
-        self.framerange = None # all frames, no skipping
+        self.framerange = None # None means all frames, no skipping
         self.feature_list_type = None # 'static' or 'dynamic' - helps with post-processing logic
         self.rmsd_reference = None # only used for RMSD measurement type, either a filename or a frame number
         # load from file
@@ -30,7 +34,8 @@ class DataSet(object):
             self.read_dat(infilename)
 
     def copy_metadata(self, target):
-        """Copy metadata from another DataSet instance (i.e. from primaryDS to maskDS).
+        """
+        Copy metadata from another DataSet instance (i.e. from primaryDS to maskDS).
 
         Arguments:
         target - initialized DataSet instance to copy from
@@ -76,8 +81,10 @@ class DataSet(object):
         self.populated = True
 
     def dataset_to_dict(self):
-        """Links _Measurement objects to the data array and returns a dict for lookup
-        by measurement name. Doesn't add or change any data, just makes access a bit simpler."""
+        """
+        Links _Measurement objects to the data array and returns a dict for lookup
+        by measurement name. Doesn't add or change any data, just makes access a bit simpler.
+        """
 
         idx = 0
         access = {}
@@ -90,14 +97,18 @@ class DataSet(object):
         return access
 
     def add_timesteps(self, array):
-        """Add timesteps by simply pasting in an array - a better way will usually be to use the
-        setup_timesteps method below."""
+        """
+        Add timesteps by simply pasting in an array - a better way will usually be to use the
+        setup_timesteps method below.
+        """
 
         self.time = array
 
     def setup_timesteps(self):
-        """Generate time values (in picoseconds) after being populated. Relies on metadata being
-        properly set up."""
+        """
+        Generate time values (in picoseconds) after being populated. Relies on metadata being
+        properly set up.
+        """
 
         if not self.populated:
             sys.exit('Cannot setup DataSet time values! No data or wrong input type! Exiting...')
@@ -117,7 +128,8 @@ class DataSet(object):
             self.time = np.linspace(float(starttime), float(endtime), num=n_steps)
 
     def write_dat(self, outfilename=None):
-        """Writes contents of the DataSet to stdout or a file with the following format:
+        """
+        Writes contents of the DataSet to stdout or a file with the following format:
 
         >header # starts the header selection, should be the first non-comment line in file
         >version # file format version for checking compatibility
@@ -125,11 +137,12 @@ class DataSet(object):
         >timestamp # time of file generation
         >toponame # OPTIONAL topology file used to generate measurements
         >trajname # OPTIONAL trajectory file(s) used to generate measurements
-        >stepsize # OPTIONAL how long (in ps) is each timestep in trajectory
+        >stepsize(ps) # OPTIONAL how long (in ps) is each timestep in trajectory
         >pdbname # OPTIONAL pdb file used to generate measurements
         >rmsd_reference # OPTIONAL describes the reference structure used for rmsd calculations
-        >mask # OPTIONAL is the data an occupancy mask, needed to properly load those datasets
-        >feature_list_type # OPTIONAL static or dynamic - needed for merging dat files
+        >framerange # specifies the trajectory slicing used to generate data
+        >mask # True if the data is occupancy/counts (i.e. an interger array), needed to properly load those datasets
+        >feature_list_type # static or dynamic - needed when merging dat files
         >measure # name, type, and selection algebra defining a measurement
         >fields # 'time' and measure names:subnames as column headers
         >endheader # ends the header section
@@ -159,13 +172,15 @@ class DataSet(object):
             output_lines.append('>trajname %s\n' % self.trajname)
         if self.traj_stepsize:
             output_lines.append('>stepsize(ps) %d\n' % self.traj_stepsize)
-        if self.framerange:
-            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
         if self.pdbname:
             output_lines.append('>pdbname %s\n' % self.pdbname)
         if self.rmsd_reference:
             output_lines.append('>rmsd_reference %s\n' % self.rmsd_reference)
         # obligatory fields
+        try:
+            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
+        except TypeError:
+            output_lines.append('>framerange 0 -1 1 (start, stop, step)\n')
         if self.is_mask:
             output_lines.append('>mask True\n')
         else:
@@ -211,14 +226,15 @@ class DataSet(object):
             print('Finished writing output to: %s' % outfilename)
 
     def read_dat(self, infilename, enforce_version=False):
-        """Rebuild DataSet from saved measurements in a .dat file.
+        """
+        Rebuild DataSet from saved measurements in a .dat file.
 
         Arguments:
         infile - string; path to .dat file
 
         Keyword Arguments:
         enforce_version - boolean; if True turn on strict version checking - reading will fail if
-            file version is not the most current
+            file version is not among those given in 'self.compatible_file_versions'
         """
 
         print('Reading data file: %s' % infilename)

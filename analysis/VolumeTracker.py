@@ -6,23 +6,26 @@ from MDAnalysis.analysis.base import AnalysisBase
 from SimpleFeatures import SimpleFeatures
 
 class VolumeTracker(SimpleFeatures):
-    """Dynamicaly generate a list of atoms or residues using a volume built from MDAnalysis
+    """
+    Dynamicaly generate a list of atoms or residues using a volume built from MDAnalysis
     geometric selection expressions, then measure their positions at every timestep. Additionaly
-    populate a mask DataSet object with boolan values for each found entity at each timestep
-    indicating its presence (1) or abscence (0) in the search volume."""
+    populate a mask DataSet object with interger values for each found entity at each timestep
+    indicating its presence (1) or abscence (0) in the search volume.
+    """
 
     def run(self,vol_selecttext,search_selecttext,mode='atom'):
-        """Arguments:
-    vol_selecttext - string; MDAnalysis geometric selection expression; can be multiple volumes
-        chained with and/or
-    search_selecttext - string; MDAnalysis atom selection expression; defines the atom types to
-        be searched for
+        """
+        Arguments:
+        vol_selecttext - string; MDAnalysis geometric selection expression; can be multiple volumes
+            chained with and/or
+        search_selecttext - string; MDAnalysis atom selection expression; defines the atom types to
+            be searched for
 
-    Keyword arguments:
-    mode - string; either 'res' or 'atom'; format the resulting measurement list to give
-        coordinates for each found atom, or the center of mass coordinates of found residues
-    """
-    
+        Keyword arguments:
+        mode - string; either 'res' or 'atom'; format the resulting measurement list to give
+            coordinates for each found atom, or the center of mass coordinates of found residues
+        """
+
         if self.input_type == None:
             sys.exit('No data has been loaded, cannot run! Exiting...')
         # TODO: input type check, shouldn't process pdbfiles
@@ -30,10 +33,10 @@ class VolumeTracker(SimpleFeatures):
         self.primaryDS.set_dynamic()
         self.maskDS.set_dynamic()
         if self.primaryDS.framerange is None:
-            searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u)
+            searcher = _VolumeSearch(vol_selecttext, search_selecttext ,mode, self.u, verbose=True)
         else:
-            searcher = _VolumeSearch(vol_selecttext,search_selecttext,mode,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
-        print searcher.start,searcher.stop,searcher.step,searcher.n_frames
+            searcher = _VolumeSearch(vol_selecttext, search_selecttext, mode, self.u, verbose=True,
+              start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
         searcher.run()
         # setup data sets using search results
         for descriptor in searcher.selections:
@@ -47,8 +50,10 @@ class VolumeTracker(SimpleFeatures):
         self._generate_timeseries()
 
 class _VolumeSearch(AnalysisBase):
-    """Class for steping through a trajectory frame by frame and tracking the
-    atoms or residues that enter a specified volume."""
+    """
+    Class for steping through a trajectory frame by frame and tracking the
+    atoms or residues that enter a specified volume.
+    """
 
     valid_modes = ['res', 'atom']
 
@@ -71,7 +76,6 @@ class _VolumeSearch(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print(self._ts)
         tmpoccupancy = []
         for atom in self.vol_group:
             # store unique identifiers for found res/atoms

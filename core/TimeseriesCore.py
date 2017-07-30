@@ -6,14 +6,18 @@ import MDAnalysis as mda
 from DataSet import DataSet
 
 class TimeseriesCore(object):
-    """Base class for using MDAnalysis to analyze trajectory data and store it in DataSet objects."""
+    """
+    Base class for using MDAnalysis to analyze trajectory data and store it in DataSet objects.
+    """
 
     # supported input types
     valid_data_types = ['dcd_traj','generic_traj','pdb']
 
     def __init__(self):
-        """Setup empty default DataSet objects. Subclasses should use these unless there is a good
-        reason to customize."""
+        """
+        Setup empty default DataSet objects. Subclasses should use these unless there is a good
+        reason to customize.
+        """
 
         self.input_type = None # set later to: 'dcd_traj', 'generic_traj', or 'pdb'
         self.primaryDS = DataSet()
@@ -31,7 +35,8 @@ class TimeseriesCore(object):
         return custom_dataset
 
     def write_data(self, fileprefix):
-        """Writes data for all populated DataSets to .dat files in the cwd.
+        """
+        Writes data for all populated DataSets to .dat files in the cwd.
 
         Arguments:
         fileprefix - string; file names without extension (.dat or .mask.dat
@@ -44,7 +49,8 @@ class TimeseriesCore(object):
             self.maskDS.write_dat(outfilename=fileprefix+'.mask.dat')
 
     def load_universe(self, universe, traj_stepsize, framerange=None, input_type='generic_traj', toponame=None, trajname=None):
-        """Load a preinitialized MDAnalysis Universe object. This can be useful if you need to
+        """
+        Load a preinitialized MDAnalysis Universe object. This can be useful if you need to
         customize Universe generation.
 
         Arguments:
@@ -78,7 +84,8 @@ class TimeseriesCore(object):
             sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
     def load_dcd(self, psffile, dcdfile, traj_stepsize, framerange=None):
-        """Load psf topology and dcd trajectory files. For non dcd format trajectories, use
+        """
+        Load psf topology and dcd trajectory files. For non dcd format trajectories, use
         load_traj() method instead.
 
         Arguments:
@@ -104,7 +111,8 @@ class TimeseriesCore(object):
             sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
     def load_traj(self, topofile, trajfile, traj_stepsize, framerange=None):
-        """Load topology and trajectory files (any MDAnalysis supported types).
+        """
+        Load topology and trajectory files (any MDAnalysis supported types).
 
         Arguments:
         topofile - string; path to topology file
@@ -129,7 +137,8 @@ class TimeseriesCore(object):
             sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
 
     def load_pdb(self, pdbfile):
-        """Load a structure from a PDB file. PDBs are treated as single-frame trajectories.
+        """
+        Load a structure from a PDB file. PDBs are treated as single-frame trajectories.
 
         Arguments:
         pdbfile - string; path to pdb format file

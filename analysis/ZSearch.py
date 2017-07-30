@@ -6,17 +6,20 @@ from MDAnalysis.analysis.base import AnalysisBase
 from core.TimeseriesCore import TimeseriesCore
 
 class ZSearch(TimeseriesCore):
-    """Similar to _VolumeSearch, but saves only the z-coordinate of each atom found in the search
-    volume at each timestep."""
+    """
+    Similar to _VolumeSearch, but saves only the z-coordinate of each atom found in the search
+    volume at each timestep.
+    """
 
     def run(self,vol_selecttext,search_selecttext):
-        """Arguments:
-    vol_selecttext - string; MDAnalysis geometric selection expression;
-        can be multiple volumes chained with and/or
-    search_selecttext - string; MDAnalysis atom selection expression;
-        defines what to look for in the selected volume
-    """
-    
+        """
+        Arguments:
+        vol_selecttext - string; MDAnalysis geometric selection expression;
+            can be multiple volumes chained with and/or
+        search_selecttext - string; MDAnalysis atom selection expression;
+            defines what to look for in the selected volume
+        """
+
         if self.input_type == None:
             sys.exit('No data has been loaded, cannot run! Exiting...')
         self.primaryDS.set_static()
@@ -33,7 +36,6 @@ class ZSearch(TimeseriesCore):
         self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
 
 class _SearchZ(AnalysisBase):
-    # TODO: specify coordinates (xyz) to save so more than z can be used
 
     def __init__(self,vol_selecttext,search_selecttext,universe,**kwargs):
         super(_SearchZ,self).__init__(universe.trajectory,**kwargs)

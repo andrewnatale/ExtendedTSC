@@ -2,11 +2,12 @@ from __future__ import print_function
 import sys, os
 import numpy as np
 from gridData import Grid
+from MDAnalysis.coordinates.DCD import DCDWriter
 from core.TimeseriesCore import TimeseriesCore
 from base.getMDsurfs import _getMDsurfs
 
 class MembraneSurface(TimeseriesCore):
-
+    
     def run(self, grid_dim, grid_len, surface_sel, midplane_sel, stype='bin' ,grid_center_sel=None):
         if self.primaryDS.framerange is None:
             self.surfer = _getMDsurfs(
@@ -31,6 +32,13 @@ class MembraneSurface(TimeseriesCore):
               step=self.primaryDS.framerange[2])
         self.surfer.run()
         self._postprocess()
+
+    def write_aligned_subset(self, filename):
+        self.surfer.u2.trajectory.rewind()
+        self.surfer.u2.atoms.write('%s.pdb' % filename)
+        with DCDWriter('%s.dcd' % filename, self.surfer.u2.atoms.n_atoms) as w:
+            for ts in self.surfer.u2.trajectory:
+                w.write_next_timestep(ts)
 
     def write_vmd_surfaces(self):
         self._savevmdmesh('Up')
