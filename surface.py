@@ -6,15 +6,15 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.cm as mcm
 from analysis.MembraneSurface import MembraneSurface
 
-datadir = '/Users/anatale/UCSF/Grabe_lab/scratch/traakTM4/'
-topofile = os.path.join(datadir,'traakTM4_membrane_frame0.pdb')
-dcdfile = os.path.join(datadir,'traakTM4_membrane.dcd')
+datadir = '/Users/anatale/UCSF/Grabe_lab/scratch/'
+topofile = os.path.join(datadir,'tm4_nowater0.pdb')
+dcdfile = os.path.join(datadir,'tm4_nowater.dcd')
 
 a = MembraneSurface()
 a.load_traj(topofile,dcdfile,50)
-a.run(150, 150, 'name C22 C32', 'name C218', stype='interp')
+a.run(100, 100, 'name C22 C32', 'name C218', stype='interp')
 
-s = a.surfer
+a.write_aligned_subset('tm4_memb_align')
 
 # print(s.Up_hist)
 # print(np.mean(s.Up_hist[s.Up_hist>0]), np.median(s.Up_hist[s.Up_hist>0]))
