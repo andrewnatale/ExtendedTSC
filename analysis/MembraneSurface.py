@@ -7,8 +7,15 @@ from core.TimeseriesCore import TimeseriesCore
 from base.getMDsurfs import _getMDsurfs
 
 class MembraneSurface(TimeseriesCore):
-    
+    """
+    Calculate membrane surface geometry from MD data using _getMDsurfs and write the data to a
+    variety of output formats. Can also write .dcd files containing the a subset of the
+    trajectory data with the membrane alignment.
+    """
+
     def run(self, grid_dim, grid_len, surface_sel, midplane_sel, stype='bin' ,grid_center_sel=None):
+        """Setup and call _getMDsurfs.run() to calculate the upper and lower leaflet surfaces."""
+
         if self.primaryDS.framerange is None:
             self.surfer = _getMDsurfs(
               grid_dim,
@@ -34,6 +41,8 @@ class MembraneSurface(TimeseriesCore):
         self._postprocess()
 
     def write_aligned_subset(self, filename):
+        """Write out the coordinates that were aligned during surface calculation to pdb/dcd."""
+
         self.surfer.u2.trajectory.rewind()
         self.surfer.u2.atoms.write('%s.pdb' % filename)
         with DCDWriter('%s.dcd' % filename, self.surfer.u2.atoms.n_atoms) as w:
@@ -41,16 +50,22 @@ class MembraneSurface(TimeseriesCore):
                 w.write_next_timestep(ts)
 
     def write_vmd_surfaces(self):
+        """Write both upper and lower leaflet surfaces to vmd scripts using default names."""
+
         self._savevmdmesh('Up')
         self._savevmdmesh('Um')
 
     def _savevmdmesh(self, target):
+        """Write target leaflet to vmd script; Up is upper, Um is lower."""
+
+        # select our x,y,z values
         x = self.surfer.X
         y = self.surfer.Y
         if target == 'Up':
             z = self.surfer.Up
         elif target == 'Um':
             z = self.surfer.Um
+        # just iterate over the grid and write tcl commands to draw triangles
         with open('%s.tcl' % target, 'w') as meshfile:
             for j in range(self.surfer.grid_dim-1):
                 for i in range(self.surfer.grid_dim-1):

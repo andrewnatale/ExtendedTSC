@@ -4,7 +4,7 @@ import scipy.interpolate as scin
 #from statsmodels.robust.scale import mad
 import MDAnalysis as mda
 from MDAnalysis.analysis.base import AnalysisBase
-from MDAnalysis.analysis.base import AnalysisFromFunction
+#from MDAnalysis.analysis.base import AnalysisFromFunction
 from MDAnalysis.coordinates.memory import MemoryReader
 
 class _getMDsurfs(AnalysisBase):
@@ -18,6 +18,8 @@ class _getMDsurfs(AnalysisBase):
     NOTE that if you align and save a large number of coordinates beyond what is needed for surface
     calculation (using the 'additional_save_sel' keyword arg) this class will use A LOT of mermory -
     potentially much more than the size of the trajectory on disk.
+
+    TODO: allow centering of grid to arbitrary coordinates or to the center of a selection
     """
 
     def __init__(self, grid_dim, grid_len, surface_sel, midplane_sel, universe, stype='interp',
@@ -76,7 +78,7 @@ class _getMDsurfs(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        # copy and transpose coord arrays so they're shaped like what numpy cov and linalg.eig need
+        # copy and transpose coord arrays so they're shaped like what cov and linalg.eig need
         midplane_coords = self.midplane_group.positions.copy()
         midplane_coords = midplane_coords.T
         surface_coords = self.surface_group.positions.copy()
