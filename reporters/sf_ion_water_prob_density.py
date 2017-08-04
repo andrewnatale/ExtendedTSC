@@ -2,7 +2,7 @@ import sys, os, math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from core.TimeseriesCore import TimeseriesCore as tsc
+from core.DataSet import DataSet
 
 datfile_dir = '/Users/anatale/UCSF/Grabe_lab/data/traak_data/etsc_out_20170718'
 
@@ -179,7 +179,7 @@ def populate_axis(ax,data,labels):
         ax.axvline(x=elem,c='red',linewidth=1.0,linestyle='dashed')
     ax.set_title(labels)
 
-plt.figure(figsize=(16,9))
+plt.figure(figsize=(12,9))
 gs = GridSpec(3,1)
 gs.update(hspace=0.3)
 ax1 = plt.subplot(gs[0,0])

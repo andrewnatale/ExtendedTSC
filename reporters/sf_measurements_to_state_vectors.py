@@ -36,64 +36,17 @@ except OSError:
         raise
 
 # load data
-def load_raw_data():
-    datasets = {}
-    for elem in traj_names:
-        filenames = [os.path.join(datfile_dir, '%s_%s_all_frames.dat' % (elem, i)) for i in feature_names]
-        datasets[elem] = [DataSet(infilename=i) for i in filenames]
-    return datasets
+datasets = {}
+for elem in traj_names:
+    filenames = [os.path.join(datfile_dir, '%s_%s_all_frames.dat' % (elem, i)) for i in feature_names]
+    datasets[elem] = [DataSet(infilename=i) for i in filenames]
 
-def dihedral_vis(save=False):
-    layers = \
-    {
-    'S4':['129A','129B','238A','238B'],
-    'S3':['130A','130B','239A','239B'],
-    'S2':['131A','131B','240A','240B'],
-    'S1':['132A','132B','241A','241B'],
-    'S0':['133A','133B','242A','242B']
-    }
-    colors = {'S4':'red','S3':'blue','S2':'green','S1':'gold','S0':'violet'}
-    labels = \
-    {
-    'S4':'S4 - T129,T238',
-    'S3':'S3 - I130,V239',
-    'S2':'S2 - G131,G240',
-    'S1':'S1 - Y132,F241',
-    'S0':'S0 - G133,G242'
-    }
-    for key1 in sorted(datasets.keys()):
-        f, ax = plt.subplots()
-        target = datasets[key1][0].primaryDS.dataset_to_dict()
-        print target
-        txt_offset = 0
-        for key2 in sorted(layers.keys(),reverse=True):
-        #for key2 in ['S1','S2','S3']:
-            for res in layers[key2]:
-                ax.scatter(target['%s_phi' % res], target['%s_psi' % res], s=2, c=colors[key2], edgecolor='none', alpha=0.3)
-            ax.text(0.05,0.05+0.03*txt_offset, labels[key2], color=colors[key2],
-                    transform=ax.transAxes,verticalalignment='bottom',horizontalalignment='left', fontsize=8)
-            txt_offset += 1
-        ax.set_xlim([math.pi * -1.0, math.pi])
-        ax.set_ylim([math.pi * -1.0, math.pi])
-        ax.set_xlabel('Phi (radians)')
-        ax.set_ylabel('Psi (radians)')
-        ax.set_title(key1)
-        if save:
-            f.savefig(os.path.join(figures_outdir,'%s_dihedrals.png' % key1), bb_inches='tight')
-        else:
-            plt.show()
-
-tsc_writer = tsc()
-
-def vectorize(key):
+def vectorize_occupancy(key):
     target = datasets[key]
 
-    dihedrals = target[0].primaryDS.dataset_to_dict()
-    carbonyls = target[1].primaryDS.dataset_to_dict()
-    potassium = target[2].primaryDS.dataset_to_dict()
-    water = target[3].primaryDS.dataset_to_dict()
-
-    results = np.zeros((9,np.shape(potassium['zsearchlist'])[1]), dtype=int)
+    carbonyls = target[1].dataset_to_dict()
+    potassium = target[2].dataset_to_dict()
+    water = target[3].dataset_to_dict()
 
     # potassium in the pore
     pp = potassium['zsearchlist']<carbonyls['S4bottom'][2,:]
@@ -127,18 +80,8 @@ def vectorize(key):
     p0 = potassium['zsearchlist']>carbonyls['S1top'][2,:]
     p0 = np.sum(p0, axis=0)
 
-    # pinched carbonyls at s3
-    s3 = np.concatenate([dihedrals['130A_psi'],dihedrals['130B_psi'],dihedrals['239A_psi'],dihedrals['239B_psi']], axis=0) > 0
-    s3 = np.sum(s3, axis=0)
-    # at s2
-    s2 = np.concatenate([dihedrals['131A_psi'],dihedrals['131B_psi'],dihedrals['240A_psi'],dihedrals['240B_psi']], axis=0) < 0
-    s2 = np.sum(s2, axis=0)
-    # at s1
-    s1 = np.concatenate([dihedrals['132A_psi'],dihedrals['132B_psi'],dihedrals['241A_psi'],dihedrals['241B_psi']], axis=0) > 0
-    s1 = np.sum(s1, axis=0)
-
-    vectorDS = tsc_writer._custom_dataset()
-    vectorDS.copy_metadata(target[0].primaryDS)
+    vectorDS = DataSet()
+    vectorDS.copy_metadata(target[0])
     vectorDS.is_mask = True
     vectorDS.add_measurement(('pore_K','count','K+ in site below S4'), width=1)
     vectorDS.add_measurement(('s4_K','count','K+ in S4'), width=1)
@@ -150,21 +93,99 @@ def vectorize(key):
     vectorDS.add_measurement(('s3_W','count','H2Os in S3'), width=1)
     vectorDS.add_measurement(('s2_W','count','H2Os in S2'), width=1)
     vectorDS.add_measurement(('s1_W','count','H2Os in S1'), width=1)
-    vectorDS.add_measurement(('s3_pinch','count','pinched carbonyls at S3'), width=1)
-    vectorDS.add_measurement(('s2_pinch','count','pinched carbonyls at S2'), width=1)
-    vectorDS.add_measurement(('s1_pinch','count','pinched carbonyls at S1'), width=1)
 
-    vectorDS.add_collection(np.stack([pp,p4,p3,p2,p1,p0,w4,w3,w2,w1,s3,s2,s1], axis=0))
+    vectorDS.add_collection(np.stack([pp,p4,p3,p2,p1,p0,w4,w3,w2,w1], axis=0))
     vectorDS.setup_timesteps()
-    tsc_writer._data_writer(vectorDS,outfilename=os.path.join(datfile_dir, 'state_vectors', '%s_vectorized.dat' % key))
+    vectorDS.write_dat(outfilename=os.path.join(datfile_dir, 'state_vectors', '%s_sf_occ_vector.dat' % key))
 
-datasets = load_raw_data()
-#dihedral_vis(save=True)
+def generate_dihedral_cutoffs():
+    # doesn't automatically generate cutoffs, but creates histograms
+    # of the angle of interest that can be examined to extract cutoffs
+
+    layers = \
+    {
+    'S0top':['133A','133B','242A','242B'],
+    'S0S1':['132A','132B','241A','241B'],
+    'S1S2':['131A','131B','240A','240B'],
+    'S2S3':['130A','130B','239A','239B'],
+    'S3S4':['129A','129B','238A','238B'],
+    'S4bottom':['129A','129B','238A','238B']
+    }
+
+    for key1 in ['S0top','S0S1','S1S2','S2S3','S3S4','S4bottom']:
+        if key1 == 'S4bottom':
+            angle = 'chi1'
+        else:
+            angle = 'psi'
+        angles = np.zeros((0,))
+        for key2 in datasets:
+            tmpdict = datasets[key2][0].dataset_to_dict()
+            for res in layers[key1]:
+                angles = np.concatenate([angles, tmpdict['%s_%s' % (res, angle)][0,:]], axis=0)
+        # wrap into (-pi,+pi):
+        angles[angles>np.pi] -= np.pi*2
+        angles[angles<np.pi*-1] += np.pi*2
+        hist, edges = np.histogram(angles, bins=100, range=(-1.0*np.pi,np.pi), density=True)
+        centers = (edges[:-1] + edges[1:]) / 2
+        # plot
+        f, ax = plt.subplots()
+        ax.plot(centers,hist,linewidth=2.0)
+        ax.set_xlim([math.pi * -1.0, math.pi])
+        ax.set_ylim([0,0.02])
+        ax.set_xlabel('%s (radians)' % angle)
+        ax.set_title(key1)
+        plt.show()
+
+def vectorize_angles(key):
+    target = datasets[key]
+    dihedrals = target[0].dataset_to_dict()
+
+    layers = \
+    {
+    'S0top':(['133A','133B','242A','242B'], (-1.40,1.75)),
+    'S0S1':(['132A','132B','241A','241B'], (-2.5,0.38)),
+    'S1S2':(['131A','131B','240A','240B'], (-0.25,3.14)),
+    'S2S3':(['130A','130B','239A','239B'], (-2.50,0.16)),
+    'S3S4':(['129A','129B','238A','238B'], (-1.0,2.0)),
+    'S4bottom':(['129A','129B','238A','238B'], (-0.20,2.50))
+    }
+
+    features = []
+    arrays = []
+    for key1 in ['S0top','S0S1','S1S2','S2S3','S3S4','S4bottom']:
+        if key1 == 'S4bottom':
+            angle = 'chi1'
+        else:
+            angle = 'psi'
+        low, high = layers[key1][1]
+        for res in layers[key1][0]:
+            angles = dihedrals['%s_%s' % (res, angle)][0,:]
+            # wrap into (-pi,+pi):
+            angles[angles>np.pi] -= np.pi*2
+            angles[angles<np.pi*-1] += np.pi*2
+
+            true_if_flip = ~np.logical_and(angles>low, angles<high)
+            true_if_flip = true_if_flip.astype(np.int8)
+            features.append('%s_%s_flip' % (res, angle))
+            arrays.append(true_if_flip)
+
+    vectorDS = DataSet()
+    vectorDS.copy_metadata(target[0])
+    vectorDS.is_mask = True
+    for elem in features:
+        vectorDS.add_measurement((elem, 'boolean', 'True if flip'), width=1)
+    vectorDS.add_collection(np.stack(arrays, axis=0))
+    vectorDS.setup_timesteps()
+    vectorDS.write_dat(outfilename=os.path.join(datfile_dir, 'state_vectors', '%s_sf_dihed_vector.dat' % key))
+
 try:
     os.makedirs(os.path.join(datfile_dir, 'state_vectors'))
 except OSError:
     if not os.path.isdir(os.path.join(datfile_dir, 'state_vectors')):
         raise
 
+#generate_dihedral_cutoffs()
+
 for traj in traj_names:
-    vectorize(traj)
+    vectorize_angles(traj)
+    vectorize_occupancy(traj)
