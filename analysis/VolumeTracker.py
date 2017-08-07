@@ -40,13 +40,13 @@ class VolumeTracker(SimpleFeatures):
         searcher.run()
         # setup data sets using search results
         for descriptor in searcher.selections:
-            self.primaryDS.add_measurement(descriptor)
+            self.primaryDS.add_feature(descriptor)
         for descriptor in searcher.selections_mask:
             # occupancy measure types must have width=1
-            self.maskDS.add_measurement(descriptor,width=1)
+            self.maskDS.add_feature(descriptor,width=1)
         # load the masking data from the search
-        self.maskDS.add_collection(searcher.mask)
-        self.maskDS.setup_timesteps()
+        self.maskDS.format_data(searcher.mask)
+        # now go get the coordinates
         self._generate_timeseries()
 
 class _VolumeSearch(AnalysisBase):

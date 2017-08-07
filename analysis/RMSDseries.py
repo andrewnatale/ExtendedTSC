@@ -65,7 +65,7 @@ class RMSDseries(TimeseriesCore):
             # reset trajectory to beginning
             self.u.trajectory.rewind()
             descriptor = ('rmsdseries', 'RMSD', selecttext)
-        self.primaryDS.add_measurement(descriptor, width=1)
+        self.primaryDS.add_feature(descriptor, width=1)
         if align:
             self.center = True
             self.superpose = True
@@ -76,8 +76,7 @@ class RMSDseries(TimeseriesCore):
             series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True,
               start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
         series.run()
-        self.primaryDS.add_collection(series.rmsd)
-        self.primaryDS.setup_timesteps()
+        self.primaryDS.format_data(series.rmsd)
 
 class _simpleRMSD(AnalysisBase):
 

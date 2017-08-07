@@ -3,144 +3,94 @@ import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis.core.Timeseries as tm
-from core.TimeseriesCore import TimeseriesCore
-from base.GenericTSC import _GenericTSC
+#from core.TimeseriesCore import TimeseriesCore # will be deprecated in MDAnalysis 0.17.0
+from base.GenTimeseries import GenTimeseries
 
 class SimpleFeatures(TimeseriesCore):
-    """Reference class for analyzers that need to make certain simple types of measurements using
-    either MDAnalysis.core.Timeseries.TimeseriesCollection (fast - for DCD files) or the builtin
-    _GenericTSC (slower, but works with anuything MDAnalysis can read). Use a list of selection
-    descriptors. When subclassed, the run() method can be redefined to generate measurement objects
-    in some way other than loading a list before generating a timeseries."""
+    """
+    Class for analyzers that need to make certain simple types of features using GenTimeseries
+    (works like the deprecated TimeseriesCollection module). Takes as input a list of selection
+    descriptors. When subclassed, the run() method can be redefined to generate _Feature objects
+    in some way other than loading a list prior to generating a timeseries."""
 
     def run(self,selection_list):
-        """Arguments:
-    selection_list - list; a list of 3-string tuples of the form:
-        (name, type, selectext);
-        name is a identifier
-        type is a code recognized by the run() method
-        selecttext is an MDAnalysis format atom selector expression
-    """
-    
+        """
+        Arguments:
+        selection_list - list; a list of 3-string tuples of the form:
+            (name, type, selectext);
+            name is a identifier
+            type is a code recognized by the run() method
+            selecttext is an MDAnalysis format atom selector expression
+        """
+
         if self.input_type == None:
             sys.exit('No data has been loaded, cannot run! Exiting...')
         # setup primaryDS using selections from a list
         for descriptor in selection_list:
-            self.primaryDS.add_measurement(descriptor)
+            self.primaryDS.add_feature(descriptor)
         self.primaryDS.set_static()
         self._generate_timeseries()
 
     def _generate_timeseries(self):
-        """Make measurements on a trajectory based on a loaded or generated selection list, then
-    poulate a DataSet object with the results."""
+        """Featurize a trajectory based on a loaded or generated selection list, then
+        poulate a DataSet object with the results."""
 
         # check that the primary DataSet object has been properly initialized
         if not self.primaryDS:
             sys.exit('DataSet not properly initialized! Exiting...')
-        elif self.primaryDS.count_measurements() == 0:
-            sys.exit('No measurement descriptors found in DataSet. Exiting...')
+        elif len(self.primaryDS) == 0:
+            sys.exit('No feature descriptors found in DataSet. Exiting...')
         elif self.primaryDS.populated is True:
             sys.exit('DataSet object already contains an array, cannot generate another! Exiting...')
-        # check that measurement objects behave as expected on the input topology, and set measure widths
-        for meas in self.primaryDS.measurements:
-            if meas.type == 'atom':
-                tmpselect = self.u.select_atoms(meas.selecttext)
-                # strictly speaking, TimeseriesCollection can handle having more than one atom
-                # in an 'atom' selection - it just measures coordinates for all of them
-                # however to keep things simpler downstream, enforce one atom selections here
+        # check that feature selections behave as expected on the input topology, and set widths
+        for feature in self.primaryDS.feature_list:
+            if feature.type == 'atom':
+                tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 1:
                     sys.exit('Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
-                meas.set_width(3)
-            elif meas.type == 'bond':
+                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                feature.set_width(3)
+            elif feature.type == 'bond':
                 # not implemented
-                sys.exit('measurement type %s not implemented, exiting' % meas.type)
-            elif meas.type == 'angle':
+                sys.exit('feature type %s not implemented, exiting' % feature.type)
+            elif feature.type == 'angle':
                 # not implemented
-                sys.exit('measurement type %s not implemented, exiting' % meas.type)
-            elif meas.type == 'dihedral':
-                tmpselect = self.u.select_atoms(meas.selecttext)
+                sys.exit('feature type %s not implemented, exiting' % feature.type)
+            elif feature.type == 'dihedral':
+                tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 4:
                     sys.exit('Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
-                meas.set_width(1)
-            elif meas.type == 'distance':
-                tmpselect = self.u.select_atoms(meas.selecttext)
+                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                feature.set_width(1)
+            elif feature.type == 'distance':
+                tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 2:
                     sys.exit('Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
-                      % (meas.type, meas.selecttext, tmpselect.n_atoms))
-                meas.set_width(1)
-            elif meas.type == 'COG':
-                tmpselect = self.u.select_atoms(meas.selecttext)
+                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                feature.set_width(1)
+            elif feature.type == 'COG':
+                tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms == 0:
                     sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (meas.type, meas.selecttext))
-                meas.set_width(3)
-            elif meas.type == 'COM':
-                tmpselect = self.u.select_atoms(meas.selecttext)
+                      % (feature.type, feature.selecttext))
+                feature.set_width(3)
+            elif feature.type == 'COM':
+                tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms == 0:
                     sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (meas.type, meas.selecttext))
-                meas.set_width(3)
-            elif meas.type == 'water_dipole':
+                      % (feature.type, feature.selecttext))
+                feature.set_width(3)
+            elif feature.type == 'water_dipole':
                 # not implemented
-                sys.exit('measurement type %s not implemented, exiting' % meas.type)
+                sys.exit('feature type %s not implemented, exiting' % feature.type)
             else:
-                sys.exit('unrecognized measure type %s! Exiting...' % meas.type)
-        # check input data format and call the appropriate method to generate the array
-        if self.input_type == 'dcd_traj':
-            tmp_array = self._DCD_timeseries()
-        elif self.input_type == 'generic_traj':
-            tmp_array = self._generic_timeseries()
-        elif self.input_type == 'pdb':
-            tmp_array = self._generic_timeseries()
-        else:
-            sys.exit('Cannot determine input data format! Check trajectory initialization! Exiting...')
-        # process the array into a DataSet object
-        self.primaryDS.add_collection(tmp_array)
-        self.primaryDS.setup_timesteps()
-
-    def _DCD_timeseries(self):
-        """Use TimeseriesCollection to make measurements (fast but DCD only)."""
-
-        collection = tm.TimeseriesCollection()
-        # all the error checking should be done, so assume it's good and load it up
-        for meas in self.primaryDS.measurements:
-            if meas.type == 'atom':
-                collection.addTimeseries(tm.Atom('v', self.u.select_atoms(meas.selecttext)))
-            elif meas.type == 'bond':
-                # not implemented
-                pass
-            elif meas.type == 'angle':
-                # not implemented
-                pass
-            elif meas.type == 'dihedral':
-                collection.addTimeseries(tm.Dihedral(self.u.select_atoms(meas.selecttext)))
-            elif meas.type == 'distance':
-                collection.addTimeseries(tm.Distance('r', self.u.select_atoms(meas.selecttext)))
-            elif meas.type == 'COG':
-                collection.addTimeseries(tm.CenterOfGeometry(self.u.select_atoms(meas.selecttext)))
-            elif meas.type == 'COM':
-                collection.addTimeseries(tm.CenterOfMass(self.u.select_atoms(meas.selecttext)))
-            elif meas.type == 'water_dipole':
-                # not implemented
-                pass
-        # compute Timeseries from universe trajectory and return the resulting array
-        # NOTE: There's a bug in MDAnalysis' fast DCD reader code that causes it to drop the last
-        # frame it should measure when slicing the trajectory in any way (not the same bug as noted above in
-        # 'measures_from_volumesearch'). Haven't tracked it down so we just work around it - ???still active in 0.16.1???
+                sys.exit('unrecognized measure type %s! Exiting...' % feature.type)
+        # generate the array
         if self.primaryDS.framerange is None:
-            collection.compute(self.u.trajectory)
+            collection = GenTimeseries(self.primaryDS.feature_list, self.u, verbose=True)
         else:
-            collection.compute(self.u.trajectory, start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
-        return collection.data
-
-    def _generic_timeseries(self):
-        """Use _GenericTSC to make measurements (any trajectory format)."""
-
-        if self.primaryDS.framerange is None:
-            collection = _GenericTSC(self.primaryDS.measurements,self.u)
-        else:
-            collection = _GenericTSC(self.primaryDS.measurements,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
+            collection = GenTimeseries(self.primaryDS.feature_list, self.u, verbose=True,
+              start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
         collection.run()
-        return collection.data
+        # process the array into a DataSet object
+        self.primaryDS.format_data(collection.data)

@@ -30,10 +30,8 @@ class ZSearch(TimeseriesCore):
         searcher.run()
         # setup data set using search results
         for descriptor in searcher.selections:
-            self.primaryDS.add_measurement(descriptor)
-        self.primaryDS.add_collection(searcher.coordarray)
-        self.primaryDS.setup_timesteps()
-        self.primaryDS.measurements[0].set_width(np.shape(searcher.coordarray)[0])
+            self.primaryDS.add_feature(descriptor, width=np.shape(searcher.coordarray)[0])
+        self.primaryDS.format_data(searcher.coordarray)
 
 class _SearchZ(AnalysisBase):
 
