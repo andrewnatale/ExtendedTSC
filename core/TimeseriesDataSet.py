@@ -35,7 +35,7 @@ class TimeseriesDataSet(Mapping):
         self.rmsd_reference = None # only used for RMSD measurement type, either a filename or a frame number
         # load from file
         if infilename:
-            self.read_dat(infilename)
+            self._read(infilename)
 
     # define abstract methods for Mapping:
 
@@ -192,10 +192,13 @@ class TimeseriesDataSet(Mapping):
         if self.rmsd_reference:
             output_lines.append('>rmsd_reference %s\n' % self.rmsd_reference)
         # obligatory fields
-        try:
-            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
-        except TypeError:
+        # framerange requires special care so as to not break file loading
+        if self.framerange is None:
             output_lines.append('>framerange 0 -1 1 (start, stop, step)\n')
+        elif self.framerange[1] is None:
+            output_lines.append('>framerange %d -1 %d (start, stop, step)\n' % (self.framerange[0],self.framerange[2]))
+        else:
+            output_lines.append('>framerange %d %d %d (start, stop, step)\n' % (self.framerange[0],self.framerange[1],self.framerange[2]))
         if self.is_mask:
             output_lines.append('>mask True\n')
         else:
@@ -297,6 +300,8 @@ class TimeseriesDataSet(Mapping):
                     sys.exit('Cannot determine if file %s is data or mask. Exiting...' % infilename)
             elif leader == '>stepsize(ps)':
                 self.traj_stepsize = int(p.split()[1])
+            # despite the mess in every other method that deals with framerange,
+            # when loading from .dat files, it should always be 3 intergers
             elif leader == '>framerange':
                 self.framerange = (int(p.split()[1]),int(p.split()[2]),int(p.split()[3]))
             elif leader == '>feature_list_type':
@@ -354,7 +359,10 @@ class TimeseriesDataSet(Mapping):
 class _Feature(Sequence):
     """A class to hold a single measurement and keep track of its description and data."""
 
-    valid_feature_types = []
+    # there are a lot of these, and the list changes a lot, so no checks;
+    # this is for reference only
+    valid_feature_types = ['atom', 'dihedral', 'COM', 'COG', 'distance', 'zsearchlist',
+      'rmsdseries', 'occupancy', 'boolean', 'count']
 
     def __init__(self, descriptor, width):
         self.name, self.type, self.selecttext = descriptor

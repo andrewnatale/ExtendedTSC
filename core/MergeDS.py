@@ -26,13 +26,9 @@ def merge_along_time(datlist):
         newDataSet = tds()
         newDataSet._read(filename, enforce_version=True)
         dats.append(newDataSet)
-    # attempt to sort by start frame
-    try:
-        sorted_dats = sorted(dats, key=lambda ds: ds.framerange[0])
-    except:
-        print('Cannot sort data files by starting frame! Keeping the input order...')
-    else:
-        dats = sorted_dats
+    # sort by start frame
+    sorted_dats = sorted(dats, key=lambda ds: ds.framerange[0])
+    dats = sorted_dats
     # extract parameters from the first DataSet in the list and compare to all the others
     test_width = dats[0].get_width()
     test_n_features = len(dats[0])
@@ -77,7 +73,7 @@ def merge_along_time(datlist):
     mergeDS.framerange = (first_frame, last_frame, test_stride)
     # at this point we must diverge and use different code depending on 'static' vs 'dynamic'
     if test_feature_list_type == 'static':
-        # copy measurement objects
+        # copy features
         for feature in dats[0].feature_list:
             mergeDS.add_feature((feature.name, feature.type, feature.selecttext), width=feature.width)
         # add padding (if needed), concatenate, load data, and generate time array

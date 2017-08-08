@@ -12,7 +12,7 @@ class TimeseriesCore(object):
     """
 
     # supported input types
-    valid_data_types = ['dcd_traj','generic_traj','pdb']
+    valid_data_types = ['generic_traj','pdb']
 
     def __init__(self):
         """
@@ -75,7 +75,9 @@ class TimeseriesCore(object):
             if trajname:
                 self.primaryDS.trajname = trajname
             self.primaryDS.traj_stepsize = traj_stepsize
-            # parse framerange - can be problematic, I blame the AnalysisBase API
+            # parse framerange - this is an ugly kludge, I blame the AnalysisBase API
+            # don't forget, if you mess with this, make cooresponding changes to the _write
+            #  method in core.TimeseriesDataSet
             if framerange is None:
                 self.primaryDS.framerange = (0, -1, 1)
             else:
@@ -109,7 +111,9 @@ class TimeseriesCore(object):
             self.primaryDS.toponame = os.path.abspath(topofile)
             self.primaryDS.trajname = os.path.abspath(trajfile)
             self.primaryDS.traj_stepsize = traj_stepsize
-            # format framerange - can be problematic, I blame the AnalysisBase API
+            # parse framerange - this is an ugly kludge, I blame the AnalysisBase API
+            # don't forget, if you mess with this, make cooresponding changes to the .dat
+            # writer method in core.TimeseriesDataSet
             if framerange is None:
                 self.primaryDS.framerange = (0, -1, 1)
             else:
