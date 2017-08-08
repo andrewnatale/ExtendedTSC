@@ -13,7 +13,7 @@ class GenTimeseries(AnalysisBase):
     """
 
     def __init__(self,feature_list,universe,**kwargs):
-        super(_GenericTSC,self).__init__(universe.trajectory,**kwargs)
+        super(GenTimeseries,self).__init__(universe.trajectory,**kwargs)
         self.target_features = feature_list
         self.u = universe
 

@@ -24,9 +24,10 @@ class ZSearch(TimeseriesCore):
             sys.exit('No data has been loaded, cannot run! Exiting...')
         self.primaryDS.set_static()
         if self.primaryDS.framerange is None:
-            searcher = _SearchZ(vol_selecttext,search_selecttext,self.u)
+            searcher = _SearchZ(vol_selecttext, search_selecttext, self.u, verbose=True)
         else:
-            searcher = _SearchZ(vol_selecttext,search_selecttext,self.u,start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
+            searcher = _SearchZ(vol_selecttext, search_selecttext, self.u, verbose=True,
+              start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
         searcher.run()
         # setup data set using search results
         for descriptor in searcher.selections:
@@ -48,7 +49,6 @@ class _SearchZ(AnalysisBase):
 
     def _single_frame(self):
         # what to do at each frame
-        print(self._ts)
         tmpcoordlist = []
         for atom in self.vol_group:
             tmpcoordlist.append(atom.position[2])

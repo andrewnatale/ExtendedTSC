@@ -1,5 +1,5 @@
 from __future__ import print_function
-import sys
+import sys, os
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as mda

@@ -24,7 +24,7 @@ def merge_along_time(datlist):
     for filename in datlist:
         print('Loading %s for merge operation...' % filename)
         newDataSet = tds()
-        newDataSet.read_dat(filename, enforce_version=True)
+        newDataSet._read(filename, enforce_version=True)
         dats.append(newDataSet)
     # attempt to sort by start frame
     try:
@@ -151,7 +151,7 @@ def merge_along_features(datlist):
     for filename in datlist:
         print('Loading %s for merge operation...' % filename)
         newDataSet = tds()
-        newDataSet.read_dat(filename, enforce_version=True)
+        newDataSet._read(filename, enforce_version=True)
         dats.append(newDataSet)
     # extract parameters from the first DataSet in the list and compare to all the others
     test_length = dats[0].get_length()

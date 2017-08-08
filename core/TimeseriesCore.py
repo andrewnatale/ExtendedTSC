@@ -45,9 +45,9 @@ class TimeseriesCore(object):
         """
 
         if self.primaryDS.populated:
-            self.primaryDS.write_dat(outfilename=fileprefix+'.dat')
+            self.primaryDS._write(outfilename=fileprefix+'.dat')
         if self.maskDS.populated:
-            self.maskDS.write_dat(outfilename=fileprefix+'.mask.dat')
+            self.maskDS._write(outfilename=fileprefix+'.mask.dat')
 
     def load_universe(self, universe, traj_stepsize, framerange=None, input_type='generic_traj', toponame=None, trajname=None):
         """
@@ -75,7 +75,13 @@ class TimeseriesCore(object):
             if trajname:
                 self.primaryDS.trajname = trajname
             self.primaryDS.traj_stepsize = traj_stepsize
-            self.primaryDS.framerange = framerange
+            # parse framerange - can be problematic, I blame the AnalysisBase API
+            if framerange is None:
+                self.primaryDS.framerange = (0, -1, 1)
+            else:
+                self.primaryDS.framerange = framerange
+            if self.primaryDS.framerange[1] == -1:
+                self.primaryDS.framerange = (self.primaryDS.framerange[0], None, self.primaryDS.framerange[2])
             self.u = universe
             if input_type != 'pdb' and input_type in self.valid_data_types:
                 self.input_type = input_type
@@ -103,7 +109,13 @@ class TimeseriesCore(object):
             self.primaryDS.toponame = os.path.abspath(topofile)
             self.primaryDS.trajname = os.path.abspath(trajfile)
             self.primaryDS.traj_stepsize = traj_stepsize
-            self.primaryDS.framerange = framerange
+            # format framerange - can be problematic, I blame the AnalysisBase API
+            if framerange is None:
+                self.primaryDS.framerange = (0, -1, 1)
+            else:
+                self.primaryDS.framerange = framerange
+            if self.primaryDS.framerange[1] == -1:
+                self.primaryDS.framerange = (self.primaryDS.framerange[0], None, self.primaryDS.framerange[2])
             # init MDA universe
             self.u = mda.Universe(self.primaryDS.toponame,self.primaryDS.trajname)
             self.input_type = 'generic_traj'

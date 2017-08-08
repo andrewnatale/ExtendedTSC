@@ -2,8 +2,8 @@ from __future__ import print_function
 import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
-import MDAnalysis.core.Timeseries as tm
-#from core.TimeseriesCore import TimeseriesCore # will be deprecated in MDAnalysis 0.17.0
+#import MDAnalysis.core.Timeseries as tm # will be deprecated in MDAnalysis 0.17.0
+from core.TimeseriesCore import TimeseriesCore
 from base.GenTimeseries import GenTimeseries
 
 class SimpleFeatures(TimeseriesCore):
@@ -36,9 +36,7 @@ class SimpleFeatures(TimeseriesCore):
         poulate a DataSet object with the results."""
 
         # check that the primary DataSet object has been properly initialized
-        if not self.primaryDS:
-            sys.exit('DataSet not properly initialized! Exiting...')
-        elif len(self.primaryDS) == 0:
+        if len(self.primaryDS) == 0:
             sys.exit('No feature descriptors found in DataSet. Exiting...')
         elif self.primaryDS.populated is True:
             sys.exit('DataSet object already contains an array, cannot generate another! Exiting...')

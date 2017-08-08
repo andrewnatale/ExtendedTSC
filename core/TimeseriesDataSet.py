@@ -40,17 +40,24 @@ class TimeseriesDataSet(Mapping):
     # define abstract methods for Mapping:
 
     # indexing is by feature name, returns the cooresponding _Feature object
-    # if no array has been loaded, this won't be properly set up and you'll get a KeyError
+    # if no array has been loaded, this won't give you anything
     def __getitem__(self, i):
-        return self.feature_dict[i]
+        if self.populated:
+            return self.feature_dict[i]
+        else:
+            return None
 
+    # probably a bad idea here... don't use this to do anything
     def __iter__(self):
-        return iter(self.feature_dict)
+        if self.populated:
+            return iter(self.feature_dict)
+        else:
+            return iter(self.feature_list)
 
-    # __len__() gives length of feature dict
-    # other methods give the shape of the array
+    # __len__() gives length of feature list (so it won't include 'time')
+    # other methods can give the shape of the array
     def __len__(self):
-        return len(self.feature_dict)
+        return len(self.feature_list)
 
     def copy_metadata(self, target):
         """
@@ -118,17 +125,6 @@ class TimeseriesDataSet(Mapping):
             idx += feature.width
         # can only add data once
         self.populated = True
-        # generate time array
-        self._setup_timesteps()
-
-    def _setup_timesteps(self):
-        """
-        Generate time values (in picoseconds) after being populated. Relies on framerange
-        and stepsize metadata being properly set.
-        """
-
-        if not self.populated:
-            sys.exit('Cannot setup DataSet time values! No data or wrong input type! Exiting...')
         # create an array of time values (in ps) for plotting and load it into datasets
         if self.pdbname:
             self.time = np.array([0,])
@@ -143,8 +139,10 @@ class TimeseriesDataSet(Mapping):
             n_steps = np.shape(self.data)[1]
             endtime = firstframe * self.traj_stepsize + self.traj_stepsize * framestep * (n_steps - 1)
             self.time = np.linspace(float(starttime), float(endtime), num=n_steps, endpoint=True)
+        # allow time values to be accessed in the same way as data
+        self.feature_dict['time'] = self.time
 
-    def write_dat(self, outfilename=None):
+    def _write(self, outfilename=None):
         """
         Writes contents of the DataSet to stdout or a file with the following format:
 
@@ -242,7 +240,7 @@ class TimeseriesDataSet(Mapping):
                 datfile.write(''.join(output_lines))
             print('Finished writing output to: %s' % outfilename)
 
-    def read_dat(self, infilename, enforce_version=False):
+    def _read(self, infilename, enforce_version=False):
         """
         Rebuild DataSet from saved measurements in a .dat file.
 
@@ -364,7 +362,7 @@ class _Feature(Sequence):
         self.series = None
 
     def __getitem__(self, i):
-        if self.series:
+        if self.series is not None:
             return self.series[i,:]
         else:
             return None
