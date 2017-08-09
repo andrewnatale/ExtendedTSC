@@ -9,7 +9,7 @@ class GenTimeseries(AnalysisBase):
 
     NOTE: In order to provide 'TimeseriesCollection'-like functionality (i.e. simultaneous
     generation of different feature types), this class explicitly relies on the
-    ExtendedTSC.TimeseriesDataSet API, and so it will not work with MDAnalysis alone.
+    ExtendedTSC.TimeseriesDataSet._Feature API, and so it will not work with MDAnalysis alone.
     """
 
     def __init__(self,feature_list,universe,**kwargs):

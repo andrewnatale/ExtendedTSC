@@ -13,30 +13,27 @@ class MembraneSurface(TimeseriesCore):
     trajectory data with the membrane alignment.
     """
 
-    def run(self, grid_dim, grid_len, surface_sel, midplane_sel, stype='bin' ,grid_center_sel=None):
+    def run(self, grid_dim, grid_len, surface_sel, midplane_sel, additional_save_sel='protein'):
         """Setup and call _getMDsurfs.run() to calculate the upper and lower leaflet surfaces."""
 
-        if self.primaryDS.framerange is None:
-            self.surfer = _getMDsurfs(
-              grid_dim,
-              grid_len,
-              surface_sel,
-              midplane_sel,
-              self.u,
-              stype=stype,
-              grid_center_sel=grid_center_sel)
+        # executive decision - do averaging every 200ps if using stype='interp'
+        if self.primaryDS.traj_stepsize >= 200:
+            frequency = 1
         else:
-            self.surfer = _getMDsurfs(
-              grid_dim,
-              grid_len,
-              surface_sel,
-              midplane_sel,
-              self.u,
-              stype=stype,
-              grid_center_sel=grid_center_sel,
-              start=self.primaryDS.framerange[0],
-              stop=self.primaryDS.framerange[1],
-              step=self.primaryDS.framerange[2])
+            frequency = 200 // self.primaryDS.traj_stepsize
+        self.surfer = _getMDsurfs(
+          grid_dim,
+          grid_len,
+          surface_sel,
+          midplane_sel,
+          self.u,
+          stype='interp',
+          interp_freq=1,
+          additional_save_sel=additional_save_sel,
+          verbose=True,
+          start=self.primaryDS.framerange[0],
+          stop=self.primaryDS.framerange[1],
+          step=self.primaryDS.framerange[2])
         self.surfer.run()
         self._postprocess()
 
