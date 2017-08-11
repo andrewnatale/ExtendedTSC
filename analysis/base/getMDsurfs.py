@@ -2,10 +2,8 @@ from __future__ import print_function
 import numpy as np
 import scipy.interpolate as scin
 from copy import deepcopy
-#from statsmodels.robust.scale import mad
 import MDAnalysis as mda
 from MDAnalysis.analysis.base import AnalysisBase
-#from MDAnalysis.analysis.base import AnalysisFromFunction
 from MDAnalysis.coordinates.memory import MemoryReader
 
 class _getMDsurfs(AnalysisBase):
@@ -194,7 +192,6 @@ class _getMDsurfs(AnalysisBase):
         self.u2 = mda.Merge(self.write_group)
         self.u2.transfer_to_memory()
         self.u2.load_new(np.stack(self.write_coords_list, axis=0))
-        #return self.Up, self.Um, self.Up_hist, self.Um_hist, self.X, self.Y
 
 # get a surface by constructing bins and taking a simple average
 def bin_surf(grid_dim, xedges, yedges, points):
@@ -221,12 +218,17 @@ def bin_surf(grid_dim, xedges, yedges, points):
 # to the z-axis, while not allowing any rotation about z
 class rotator(object):
 
-    def __init__(self, coordinates):
-        self.Rxy = self.genmatrix(coordinates.T)
+    def __init__(self, coordinates, z_rotation=0.0):
+        """
+        Arguments:
+        coordinates - array; set of coordinates to use to calculate the rotation matrix for the
+            membrane alignment
+        z_rotation - float; angle in degrees; the rotation matrix will be modified to add this
+            rotation about the z axis in addition to the calculated rotations about x and y
+        """
 
-    def genmatrix(self, coordinates):
-        # calculate covariance matrix
-        cov = np.cov(coordinates)
+        # transpose and get covariance matrix
+        cov = np.cov(coordinates.T)
         # get eigenvectors, values
         evals, evecs = np.linalg.eig(cov)
         # print('starting evecs:')
@@ -261,8 +263,15 @@ class rotator(object):
         Rxy_evecs = Ry * Rx_evecs
         # print('Ry applied to Rx_evecs:')
         # print(Rxy_evecs)
-        return Rx * Ry
+        # specified z-rotation
+        alpha = np.deg2rad(z_rotation)
+        Rz = np.matrix([[np.cos(alpha),  np.sin(alpha), 0.0],
+                        [-np.sin(alpha), np.cos(alpha), 0.0],
+                        [0.0,            0.0,           1.0]])
+        # save the rotation matix
+        self.Rxyz = Rx * Ry * Rz
 
     def rotate(self, target):
-        Rxy_target = self.Rxy * target.T
-        return Rxy_target.A.T
+        """Rotate another set of coordinates by the calculated rotation."""
+        Rxyz_target = self.Rxyz * target.T
+        return Rxyz_target.A.T

@@ -16,11 +16,12 @@ class MembraneSurface(TimeseriesCore):
     def run(self, grid_dim, grid_len, surface_sel, midplane_sel, additional_save_sel='protein'):
         """Setup and call _getMDsurfs.run() to calculate the upper and lower leaflet surfaces."""
 
-        # executive decision - do averaging every 200ps if using stype='interp'
-        if self.primaryDS.traj_stepsize >= 200:
-            frequency = 1
-        else:
-            frequency = 200 // self.primaryDS.traj_stepsize
+        # # executive decision - do averaging every 200ps if using stype='interp'
+        # if self.primaryDS.traj_stepsize >= 200:
+        #     frequency = 1
+        # else:
+        #     frequency = 200 // self.primaryDS.traj_stepsize
+        frequency = 1
         self.surfer = _getMDsurfs(
           grid_dim,
           grid_len,
@@ -28,7 +29,7 @@ class MembraneSurface(TimeseriesCore):
           midplane_sel,
           self.u,
           stype='interp',
-          interp_freq=1,
+          interp_freq=frequency,
           additional_save_sel=additional_save_sel,
           verbose=True,
           start=self.primaryDS.framerange[0],
@@ -37,22 +38,22 @@ class MembraneSurface(TimeseriesCore):
         self.surfer.run()
         self._postprocess()
 
-    def write_aligned_subset(self, filename):
+    def write_aligned_subset(self, basename):
         """Write out the coordinates that were aligned during surface calculation to pdb/dcd."""
 
         self.surfer.u2.trajectory.rewind()
-        self.surfer.u2.atoms.write('%s.pdb' % filename)
-        with DCDWriter('%s.dcd' % filename, self.surfer.u2.atoms.n_atoms) as w:
+        self.surfer.u2.atoms.write('%s.mem_align.pdb' % basename)
+        with DCDWriter('%s.mem_align.dcd' % basename, self.surfer.u2.atoms.n_atoms) as w:
             for ts in self.surfer.u2.trajectory:
                 w.write_next_timestep(ts)
 
-    def write_vmd_surfaces(self):
+    def write_vmd_surfaces(self, basename):
         """Write both upper and lower leaflet surfaces to vmd scripts using default names."""
 
-        self._savevmdmesh('Up')
-        self._savevmdmesh('Um')
+        self._savevmdmesh('Up', basename)
+        self._savevmdmesh('Um', basename)
 
-    def _savevmdmesh(self, target):
+    def _savevmdmesh(self, target, basename):
         """Write target leaflet to vmd script; Up is upper, Um is lower."""
 
         # select our x,y,z values
@@ -63,7 +64,7 @@ class MembraneSurface(TimeseriesCore):
         elif target == 'Um':
             z = self.surfer.Um
         # just iterate over the grid and write tcl commands to draw triangles
-        with open('%s.tcl' % target, 'w') as meshfile:
+        with open('%s.%s.tcl' % (basename, target), 'w') as meshfile:
             for j in range(self.surfer.grid_dim-1):
                 for i in range(self.surfer.grid_dim-1):
                     if np.sum(np.isnan((x[i,j],y[i,j],z[i,j],x[i+1,j],y[i+1,j],z[i+1,j],x[i+1,j+1],y[i+1,j+1],z[i+1,j+1]))) < 1:
@@ -76,7 +77,4 @@ class MembraneSurface(TimeseriesCore):
                           (x[i,j],y[i,j],z[i,j],x[i,j+1],y[i,j+1],z[i,j+1],x[i+1,j+1],y[i+1,j+1],z[i+1,j+1]))
 
     def _postprocess(self):
-        pass
-
-    def _debug(self):
         pass

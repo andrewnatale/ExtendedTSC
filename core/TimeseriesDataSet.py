@@ -126,6 +126,7 @@ class TimeseriesDataSet(Mapping):
         # can only add data once
         self.populated = True
         # create an array of time values (in ps) for plotting and load it into datasets
+        # you can override these automatic values with the set_time() method if needed
         if self.pdbname:
             self.time = np.array([0,])
         else:
@@ -140,6 +141,13 @@ class TimeseriesDataSet(Mapping):
             endtime = firstframe * self.traj_stepsize + self.traj_stepsize * framestep * (n_steps - 1)
             self.time = np.linspace(float(starttime), float(endtime), num=n_steps, endpoint=True)
         # allow time values to be accessed in the same way as data
+        self.feature_dict['time'] = self.time
+
+    def set_time(self, time_array):
+        """Time values can usually be calculated from metadata and the number of frames, but
+        if they need to be overridden, pass the new time values in a 1D array to this method."""
+
+        self.time = time_array
         self.feature_dict['time'] = self.time
 
     def _write(self, outfilename=None):
@@ -340,8 +348,9 @@ class TimeseriesDataSet(Mapping):
             # new leader
             leader = lines[0].split()[0]
         # convert lists to arrays
-        #self.add_timesteps(np.array(tmptime))
         self.format_data(np.array(tmplist).T)
+        # use time values from file
+        self.feature_dict['time'] = np.array(tmptime)
         if read_mask:
             self.is_mask = True
         print('Finished reading file: %s' % infilename)
@@ -386,3 +395,6 @@ class _Feature(Sequence):
 
     def add_data(self, array_ref):
         self.series = array_ref
+
+    def get_descriptor(self):
+        return (self.name, self.type, self.selecttext)
