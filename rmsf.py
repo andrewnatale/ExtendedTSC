@@ -11,7 +11,7 @@ basename = ''.join(traj.split('/')[-1].split('.')[:-1])
 print(basename)
 
 if basename.startswith('traakTM4'):
-    selecttext = 'protein and ((resid 102-106) or (resid 211 to 215) or (resid 384 to 388) or (resid 493 to 497)) and name CA'
+    selecttext = 'protein and ((resid 102-106) or (resid 211-215) or (resid 384-388) or (resid 493-497)) and name CA'
 else:
     selecttext = 'protein and (resid 129-133 or resid 238-242) and name CA'
 
