@@ -20,12 +20,18 @@ name C312 or name C313 or name C314 or name C315 or name C316"
 
 water_ox_sel = "resname TIP3 and name OH2"
 
-dens_h2o = _getMDdensity(32, 32, water_ox_sel, u, verbose=True)
-dens_h2o.run()
+pot_sel = 'resname POT'
 
-dens_h2o.gridobj.export('h2o_%s' % outname, file_format='dx')
+# dens_h2o = _getMDdensity(32, 32, water_ox_sel, u, verbose=True)
+# dens_h2o.run()
+#
+# dens_h2o.gridobj.export('h2o_%s' % outname, file_format='dx')
+#
+# dens_lipid = _getMDdensity(75, 100, lipid_hphobic_sel, u, verbose=True)
+# dens_lipid.run()
+#
+# dens_lipid.gridobj.export('lipid_%s' % outname, file_format='dx')
 
-dens_lipid = _getMDdensity(75, 100, lipid_hphobic_sel, u, verbose=True)
-dens_lipid.run()
-
-dens_lipid.gridobj.export('lipid_%s' % outname, file_format='dx')
+dens_pot = _getMDdensity(20,40,pot_sel, u, verbose=True)
+dens_pot.run()
+dens_pot.gridobj.export('pot_%s' % outname, file_format='dx')

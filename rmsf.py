@@ -7,7 +7,7 @@ traj = os.path.abspath(sys.argv[2])
 output_dir = os.path.abspath(sys.argv[3])
 tag = sys.argv[4]
 
-basename = '.'.join(traj.split('/')[-1].split('.')[:-1])
+basename = ''.join(traj.split('/')[-1].split('.')[:-1])
 print(basename)
 
 if basename.startswith('traakTM4'):

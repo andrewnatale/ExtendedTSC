@@ -13,8 +13,7 @@ universe_recipe = \
 {
 'toponame' : 'topo.file.name.psf',
 'trajname' : 'traj.file.name.dcd',
-'stepsize' : 500,
-'input_type' : 'dcd_traj'
+'stepsize' : 500
 }
 
 feature_sets = \

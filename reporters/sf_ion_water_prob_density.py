@@ -2,7 +2,7 @@ import sys, os, math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from core.DataSet import DataSet
+from core.TimeseriesDataSet import TimeseriesDataSet as tsds
 
 datfile_dir = '/Users/anatale/UCSF/Grabe_lab/data/traak_data/etsc_out_20170718'
 
@@ -44,8 +44,7 @@ except OSError:
 datasets = {}
 for elem in traj_names:
     filenames = [os.path.join(datfile_dir, '%s_%s_all_frames.dat' % (elem, i)) for i in feature_names]
-    tmplist = [DataSet(infilename=i) for i in filenames]
-    datasets[elem] = [i.dataset_to_dict() for i in tmplist]
+    datasets[elem] = [tsds(infilename=i) for i in filenames]
 
 carbonyl_keys = \
 [
@@ -61,7 +60,7 @@ compute_dict = {}
 for key in traj_names:
     tgt = datasets[key][0]
     # compute reference z coord for alignment
-    carbonylZ = np.stack([tgt[carbonyl_key][2,:] for carbonyl_key in carbonyl_keys], axis=0)
+    carbonylZ = np.stack([tgt[carbonyl_key][2] for carbonyl_key in carbonyl_keys], axis=0)
     zref = np.sum(carbonylZ, axis=0) / 6.0
     n_frames = np.shape(carbonylZ)[1]
     # align carbonyl coords
@@ -71,14 +70,17 @@ for key in traj_names:
     # align potassium and water coords
     potassium = datasets[key][1]['zsearchlist']
     waters = datasets[key][2]['zsearchlist']
-    for i in range(np.shape(waters)[0]):
-        waters[i,:] = waters[i,:] - zref
-    for i in range(np.shape(potassium)[0]):
-        potassium[i,:] = potassium[i,:] - zref
+    waters.series = waters.series - zref
+    potassium.series = potassium.series - zref
+    # print(waters.series.shape, potassium.series.shape)
+    # for i in range(np.shape(waters)[0]):
+    #     waters[i] = waters[i] - zref
+    # for i in range(np.shape(potassium)[0]):
+    #     potassium[i] = potassium[i] - zref
     # remove nan and compute histograms
-    histK, edgesK = np.histogram(potassium[~np.isnan(potassium)], bins=100, range=(-11.0,9.0), density=True)
+    histK, edgesK = np.histogram(potassium.series[~np.isnan(potassium.series)], bins=100, range=(-11.0,9.0), density=True)
     centersK = (edgesK[:-1] + edgesK[1:]) / 2
-    histW, edgesW = np.histogram(waters[~np.isnan(waters)], bins=100, range=(-11.0,9.0), density=True)
+    histW, edgesW = np.histogram(waters.series[~np.isnan(waters.series)], bins=100, range=(-11.0,9.0), density=True)
     centersW = (edgesW[:-1] + edgesW[1:]) / 2
     # return everything as a list
     compute_dict[key] = [n_frames,carbonylAvgs,histK,centersK,histW,centersW]
@@ -179,7 +181,7 @@ def populate_axis(ax,data,labels):
         ax.axvline(x=elem,c='red',linewidth=1.0,linestyle='dashed')
     ax.set_title(labels)
 
-plt.figure(figsize=(12,9))
+plt.figure(figsize=(12,7))
 gs = GridSpec(3,1)
 gs.update(hspace=0.3)
 ax1 = plt.subplot(gs[0,0])

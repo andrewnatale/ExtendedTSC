@@ -2,7 +2,7 @@ import sys, os, math, re
 import numpy as np
 from itertools import cycle
 import matplotlib.pyplot as plt
-from core.DataSet import DataSet
+from core.TimeseriesDataSet import TimeseriesDataSet as tsds
 
 # choose report to plot
 rep_idx = int(sys.argv[1])
@@ -32,32 +32,30 @@ figures_outdir = os.path.join(dat_root_dir, 'figures')
 
 # load data sets
 datasets = {}
-datasets['dihedrals'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_dihedrals_all_frames.dat' % report_name))
-datasets['carbonyls'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
-datasets['waters'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_water_all_frames.dat' % report_name))
-#datasets['potassium'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_all_frames.dat' % report_name))
-datasets['potassium'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_vt_all_frames.dat' % report_name))
-datasets['potassium_mask'] = DataSet(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_vt_all_frames.mask.dat' % report_name))
-datasets['dihed_vector'] = DataSet(infilename=os.path.join(dat_root_dir, 'state_vectors', '%s_sf_dihed_vector.dat' % report_name))
-
-datadicts = {}
-for key in datasets:
-    datadicts[key] = datasets[key].dataset_to_dict()
+datasets['dihedrals'] = tsds(infilename=os.path.join(dat_root_dir, '%s_filter_dihedrals_all_frames.dat' % report_name))
+datasets['carbonyls'] = tsds(infilename=os.path.join(dat_root_dir, '%s_filter_carbonyls_all_frames.dat' % report_name))
+datasets['waters'] = tsds(infilename=os.path.join(dat_root_dir, '%s_filter_water_all_frames.dat' % report_name))
+datasets['potassium'] = tsds(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_vt_all_frames.dat' % report_name))
+datasets['potassium_mask'] = tsds(infilename=os.path.join(dat_root_dir, '%s_filter_potassium_vt_all_frames.mask.dat' % report_name))
+datasets['dihed_vector'] = tsds(infilename=os.path.join(dat_root_dir, 'state_vectors', '%s_sf_dihed_vector.dat' % report_name))
+datasets['rmsf'] = tsds(infilename=os.path.join('/Users/anatale/UCSF/Grabe_lab/data/traak_data/filter_rmsf', '%s.50ps.alignYZcenter.rmsf_filter_CA.dat' % report_name))
 
 # set reference z=0 for plotting
-zref = (datadicts['carbonyls']['S0gly'][2,:]
-     + datadicts['carbonyls']['S1top'][2,:]
-     + datadicts['carbonyls']['S2S1'][2,:]
-     + datadicts['carbonyls']['S3S2'][2,:]
-     + datadicts['carbonyls']['S4S3'][2,:]
-     + datadicts['carbonyls']['S4bottom'][2,:]) / 6.0
+zref = np.zeros_like(datasets['carbonyls']['S0gly'][2])
+zref += datasets['carbonyls']['S0gly'][2]
+zref += datasets['carbonyls']['S1top'][2]
+zref += datasets['carbonyls']['S2S1'][2]
+zref += datasets['carbonyls']['S3S2'][2]
+zref += datasets['carbonyls']['S4S3'][2]
+zref += datasets['carbonyls']['S4bottom'][2]
+zref /= 6.0
 #print np.shape(zref)
 
 # setup figure
 f = plt.figure(figsize=(12,7))
 ax = f.add_subplot(111)
 
-stdtime = datadicts['carbonyls']['time'].flatten() / 1000.0
+stdtime = datasets['carbonyls']['time'].flatten() / 1000.0
 ax.set_xlim(stdtime[0],stdtime[-1])
 ax.set_ylim(-11,9)
 ax.set_xlabel('time (ns)')
@@ -71,11 +69,10 @@ def plot_flip(tgtkey):
     else:
         angle = 'psi'
     # get avg oxygen z-coordinate and align
-    target = datadicts['carbonyls'][tgtkey][2,:]-zref
+    target = datasets['carbonyls'][tgtkey][2]-zref
     #target = datadicts['carbonyls'][tgtkey][2,:]
 
-    mask = np.sum( [datadicts['dihed_vector']['%s_%s_flip' % (i, angle)].flatten() for i in layers[tgtkey]], axis=0 )
-    print np.shape(mask)
+    mask = np.sum( [datasets['dihed_vector']['%s_%s_flip' % (i, angle)].series.flatten() for i in layers[tgtkey]], axis=0 )
     mask1 = mask<1
     mask2 = mask==1
     mask3 = mask>1
@@ -104,33 +101,25 @@ for key in layers:
 
 # plot water positons
 for idx,time in np.ndenumerate(stdtime):
-    waters = datadicts['waters']['zsearchlist'][:,idx]
+    waters = datasets['waters']['zsearchlist'].series[:,idx]
     waters = waters[~np.isnan(waters)]
     waters = waters - zref[idx]
     timeblob = np.empty_like(waters)
     timeblob.fill(time)
     ax.scatter(timeblob, waters, color='lightsteelblue', s=2, edgecolor='none', zorder=1)
 
-# plot potassium positions
-# for idx,time in np.ndenumerate(stdtime):
-#     potassium = datadicts['potassium']['zsearchlist'][:,idx]
-#     potassium = potassium[~np.isnan(potassium)]
-#     potassium = potassium - zref[idx]
-#     timeblob = np.empty_like(potassium)
-#     timeblob.fill(time)
-#     ax.scatter(timeblob, potassium, color='olivedrab', s=3, edgecolor='none')
-
 colors = cycle(['green','fuchsia','orange','olivedrab','darkblue','limegreen','mediumpurple','gold','teal','maroon','sienna','orchid'])
 
-for key in datadicts['potassium']:
+for key in datasets['potassium']:
     if key != 'time':
-        zcoords = datadicts['potassium'][key][2,:] - zref
-        mask = datadicts['potassium_mask'][key][0,:]
-        print np.shape(zcoords), np.shape(mask)
+        zcoords = datasets['potassium'][key][2] - zref
+        mask = datasets['potassium_mask'][key][0]
+        #print np.shape(zcoords), np.shape(mask)
         sel_zcoords = zcoords[mask==1]
         sel_time = stdtime[mask==1]
-        print np.shape(sel_zcoords)
+        #print np.shape(sel_zcoords)
         ax.scatter(sel_time, sel_zcoords, color=colors.next(), s=3, edgecolor='none', zorder=3)
+
 # show or save plot
-#plt.show()
-f.savefig(os.path.join(figures_outdir, '%s_filter_ts.png' % report_name), bb_inches='tight')
+plt.show()
+#f.savefig(os.path.join(figures_outdir, '%s_filter_ts.png' % report_name), bb_inches='tight')
