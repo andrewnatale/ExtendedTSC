@@ -84,13 +84,13 @@ def job_runner(opts):
     outname = '%s_%s_%s' % (options['job_name'], feature_set_name, task_id)
     # get feature set type and init the proper ExtendedTSC class
     if fst == 'simple':
-        a = SimpleFeatures(verbose=True,log=outname+'.log')
+        a = SimpleFeatures()
     elif fst == 'vtrack':
-        a = VolumeTracker(verbose=True,log=outname+'.log')
+        a = VolumeTracker()
     elif fst == 'zsearch':
-        a = ZSearch(verbose=True,log=outname+'.log')
+        a = ZSearch()
     elif fst == 'rmsd':
-        a = RMSDseries(verbose=True,log=outname+'.log')
+        a = RMSDseries()
     # load the universe
     a.load_traj(
       os.path.join(input_prefix, universe_recipe['toponame']),
@@ -119,8 +119,9 @@ try:
     # take job array from above and spawn one process per job
     mppool = multiprocessing.Pool(int(options['num_proc']))
     mppool.map(job_runner, job_array)
-except:
-    print('Error in the multiprocessing pool!!!')
+except Exception as e:
+    print('Error in the multiprocessing pool:')
+    print(e)
 else:
     # merge data sets from individual jobs
     for key in feature_sets:
