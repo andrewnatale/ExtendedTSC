@@ -115,34 +115,37 @@ def job_runner(opts):
           )
     a.write_data(outname)
 
-# take job array from above and spawn one process per job
-mppool = multiprocessing.Pool(int(options['num_proc']))
-mppool.map(job_runner, job_array)
-
-# merge data sets from individual jobs
-for key in feature_sets:
-    mergelist = []
-    maskmergelist = []
-    for filename in sorted(os.listdir(os.getcwd())):
-        # collect all the files pertaining to a single feature set
-        # since this script wrote the files, they should have very predictable filename lengths
-        if filename.startswith('%s_%s' % (options['job_name'], key)) \
-          and filename.endswith('.dat') \
-          and len(filename) == (len(options['job_name']+key)+10):
-            mergelist.append(filename)
-        if filename.startswith('%s_%s' % (options['job_name'], key)) \
-          and filename.endswith('mask.dat') \
-          and len(filename) == (len(options['job_name']+key)+15):
-            maskmergelist.append(filename)
-    b = merge_along_time(sorted(mergelist))
-    b.write_dat(outfilename='%s_%s_all_frames' % (options['job_name'], key))
-    if len(maskmergelist) > 0:
-        c = merge_along_time(sorted(maskmergelist))
-        c.write_dat(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
-
-# cleanup if 'copy_to' option was used
-if options['copy_to']:
-    if options['copy_to'] != options['input_prefix']:
-        print('Cleaning up...')
-        os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
-        os.remove(os.path.join(input_prefix, universe_recipe['trajname']))
+try:
+    # take job array from above and spawn one process per job
+    mppool = multiprocessing.Pool(int(options['num_proc']))
+    mppool.map(job_runner, job_array)
+except:
+    print('Error in the multiprocessing pool!!!')
+else:
+    # merge data sets from individual jobs
+    for key in feature_sets:
+        mergelist = []
+        maskmergelist = []
+        for filename in sorted(os.listdir(os.getcwd())):
+            # collect all the files pertaining to a single feature set
+            # since this script wrote the files, they should have very predictable filename lengths
+            if filename.startswith('%s_%s' % (options['job_name'], key)) \
+              and filename.endswith('.dat') \
+              and len(filename) == (len(options['job_name']+key)+10):
+                mergelist.append(filename)
+            if filename.startswith('%s_%s' % (options['job_name'], key)) \
+              and filename.endswith('mask.dat') \
+              and len(filename) == (len(options['job_name']+key)+15):
+                maskmergelist.append(filename)
+        b = merge_along_time(sorted(mergelist))
+        b.write_dat(outfilename='%s_%s_all_frames' % (options['job_name'], key))
+        if len(maskmergelist) > 0:
+            c = merge_along_time(sorted(maskmergelist))
+            c.write_dat(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
+finally:
+    # cleanup if 'copy_to' option was used
+    if options['copy_to']:
+        if options['copy_to'] != options['input_prefix']:
+            print('Cleaning up...')
+            os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
+            os.remove(os.path.join(input_prefix, universe_recipe['trajname']))
