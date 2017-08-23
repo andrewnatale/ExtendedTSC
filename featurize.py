@@ -117,13 +117,16 @@ def job_runner(opts):
 
 try:
     # take job array from above and spawn one process per job
+    print('Starting worker processes...')
     mppool = multiprocessing.Pool(int(options['num_proc']))
     mppool.map(job_runner, job_array)
 except Exception as e:
     print('Error in the multiprocessing pool:')
     print(e)
+    raise
 else:
     # merge data sets from individual jobs
+    print('Merging data sets...')
     for key in feature_sets:
         mergelist = []
         maskmergelist = []
@@ -139,10 +142,10 @@ else:
               and len(filename) == (len(options['job_name']+key)+15):
                 maskmergelist.append(filename)
         b = merge_along_time(sorted(mergelist))
-        b.write_dat(outfilename='%s_%s_all_frames' % (options['job_name'], key))
+        b._write(outfilename='%s_%s_all_frames' % (options['job_name'], key))
         if len(maskmergelist) > 0:
             c = merge_along_time(sorted(maskmergelist))
-            c.write_dat(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
+            c._write(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
 finally:
     # cleanup if 'copy_to' option was used
     if options['copy_to']:
