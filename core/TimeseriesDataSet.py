@@ -1,6 +1,8 @@
 from __future__ import print_function
 from collections import Mapping,Sequence
 import numpy as np
+import re
+from copy import copy,deepcopy
 
 class TimeseriesDataSet(Mapping):
     """
@@ -67,15 +69,15 @@ class TimeseriesDataSet(Mapping):
         target - initialized TimeseriesDataSet instance to copy from
         """
 
-        self.data_datetime = target.data_datetime
-        self.data_hostname = target.data_hostname
-        self.toponame = target.toponame
-        self.trajname = target.trajname
-        self.traj_stepsize = target.traj_stepsize
-        self.pdbname = target.pdbname
-        self.framerange = target.framerange
-        self.feature_list_type = target.feature_list_type
-        self.rmsd_reference = target.rmsd_reference
+        self.data_datetime = copy(target.data_datetime)
+        self.data_hostname = copy(target.data_hostname)
+        self.toponame = copy(target.toponame)
+        self.trajname = copy(target.trajname)
+        self.traj_stepsize = copy(target.traj_stepsize)
+        self.pdbname = copy(target.pdbname)
+        self.framerange = copy(target.framerange)
+        self.feature_list_type = copy(target.feature_list_type)
+        self.rmsd_reference = copy(target.rmsd_reference)
 
     def set_static(self):
         self.feature_list_type = 'static'
@@ -364,6 +366,82 @@ class TimeseriesDataSet(Mapping):
         elif not (version_number in self.compatible_file_versions):
             # in the future, some versions may become obsolete and processing should stop here if detected
             print('Warning! File version is not current! Some operations may not be supported.')
+
+    def trim(self, regex_term, exclude=False):
+        """
+        Regenerate internal data structures from a subset of _Features, either keeping or rejecting
+        _Features based on whether the name variable matches the regex_term. if exclude is False,
+        keep only matching feature, if it is True, keep only non matching features.
+
+        This operation is destuctive by design, use with care.
+        """
+
+        # match feature names by regex
+        searcher = re.compile(regex_term)
+        saved = []
+        for feature in self.feature_list:
+            if exclude is False:
+                if searcher.match(feature.name):
+                    saved.append(feature)
+                else:
+                    pass
+            elif exclude is True:
+                if searcher.match(feature.name):
+                    pass
+                else:
+                    saved.append(feature)
+        # merge individual feature series into a new primary array
+        newdata = np.concatenate([feature.series for feature in saved], axis=0)
+        # overwrite old data structures with the trimmed new ones
+        self.feature_list = saved
+        self.format_data(newdata)
+
+    def match(self, regex_term, exclude=False):
+        """
+        Dry run for trim(), just print matching feature names, don't remove anything.
+        """
+
+        # match feature names by regex
+        searcher = re.compile(regex_term)
+        for feature in self.feature_list:
+            if exclude is False:
+                if searcher.match(feature.name):
+                    print(feature.name)
+                else:
+                    pass
+            elif exclude is True:
+                if searcher.match(feature.name):
+                    pass
+                else:
+                    print(feature.name)
+
+    def return_trimmed(self, regex_term, exclude=False):
+        """
+        Return a new trimmed TimeseriesDataSet object without modifying the original. Deep copy
+        _Features so that new doesn't reference the original.
+        """
+
+        new = TimeseriesDataSet()
+        new.copy_metadata(self)
+        # match feature names by regex
+        searcher = re.compile(regex_term)
+        saved = []
+        for feature in self.feature_list:
+            if exclude is False:
+                if searcher.match(feature.name):
+                    saved.append(deepcopy(feature))
+                else:
+                    pass
+            elif exclude is True:
+                if searcher.match(feature.name):
+                    pass
+                else:
+                    saved.append(deepcopy(feature))
+        new.feature_list = saved
+        # merge individual feature series into a new primary array
+        newdata = np.concatenate([feature.series for feature in saved], axis=0)
+        new.format_data(newdata)
+        return new
 
 class _Feature(Sequence):
     """A class to hold a single measurement and keep track of its description and data."""

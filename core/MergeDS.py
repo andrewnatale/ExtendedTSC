@@ -1,7 +1,8 @@
 from __future__ import print_function
 import sys, os, datetime
+import re
 import numpy as np
-from TimeseriesDataSet import TimeseriesDataSet as tds
+from TimeseriesDataSet import TimeseriesDataSet as tsds
 
 def merge_along_time(datlist):
     """
@@ -23,7 +24,7 @@ def merge_along_time(datlist):
     dats = []
     for filename in datlist:
         print('Loading %s for merge operation...' % filename)
-        newDataSet = tds()
+        newDataSet = tsds()
         newDataSet._read(filename, enforce_version=True)
         dats.append(newDataSet)
     # sort by start frame
@@ -66,7 +67,7 @@ def merge_along_time(datlist):
             print('Warning! Apparent overlap or missing frames during merge!')
         last_frame = ds.framerange[1]
     # create empty dataset and copy the metadata from the first DataSet in the list
-    mergeDS = tds()
+    mergeDS = tsds()
     mergeDS.copy_metadata(dats[0])
     mergeDS.is_mask = test_is_mask
     # get the full framerange
@@ -146,7 +147,7 @@ def merge_along_features(datlist):
     dats = []
     for filename in datlist:
         print('Loading %s for merge operation...' % filename)
-        newDataSet = tds()
+        newDataSet = tsds()
         newDataSet._read(filename, enforce_version=True)
         dats.append(newDataSet)
     # extract parameters from the first DataSet in the list and compare to all the others
@@ -168,7 +169,7 @@ def merge_along_features(datlist):
           or (ds.feature_list_type != test_feature_list_type):
             sys.exit('Failed to merge DataSets due to property mismatch! Exiting...')
     # create empty dataset and copy the metadata from the first DataSet in the list
-    mergeDS = tds()
+    mergeDS = tsds()
     mergeDS.copy_metadata(dats[0])
     mergeDS.is_mask = test_is_mask
     # now merge - much easier than timewise merge
