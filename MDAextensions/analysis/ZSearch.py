@@ -1,9 +1,10 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
-from core.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
 
 class ZSearch(TimeseriesCore):
     """

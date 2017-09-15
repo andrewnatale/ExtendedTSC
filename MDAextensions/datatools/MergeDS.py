@@ -1,8 +1,9 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys, os, datetime
 import re
 import numpy as np
-from TimeseriesDataSet import TimeseriesDataSet as tsds
+from MDAextensions.datatools.TimeseriesDataSet import TimeseriesDataSet as tsds
 
 def merge_along_time(datlist):
     """

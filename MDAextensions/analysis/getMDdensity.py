@@ -1,4 +1,5 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys, os
 import numpy as np
 from gridData import Grid

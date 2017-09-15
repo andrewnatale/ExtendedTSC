@@ -1,4 +1,5 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 from collections import Mapping,Sequence
 import numpy as np
 import re

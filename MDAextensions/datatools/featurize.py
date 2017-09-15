@@ -1,13 +1,14 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys, os, shutil
 import numpy as np
 import multiprocessing
 import MDAnalysis as mda
-from analysis.SimpleFeatures import SimpleFeatures
-from analysis.VolumeTracker import VolumeTracker
-from analysis.ZSearch import ZSearch
-from analysis.RMSDseries import RMSDseries
-from core.MergeDS import merge_along_time
+from MDAextensions.analysis.SimpleFeatures import SimpleFeatures
+from MDAextensions.analysis.VolumeTracker import VolumeTracker
+from MDAextensions.analysis.ZSearch import ZSearch
+from MDAextensions.analysis.RMSDseries import RMSDseries
+from MDAextensions.datatools.MergeDS import merge_along_time
 
 # load config file
 # provides 3 dicts; 'options', 'universe_recipe', and 'feature_sets'

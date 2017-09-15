@@ -1,11 +1,12 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys, os
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as mda
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.base import AnalysisBase
-from core.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
 
 class RMSDseries(TimeseriesCore):
     """Calculate RMSDs values for each frame of a trajectory against a specified reference,

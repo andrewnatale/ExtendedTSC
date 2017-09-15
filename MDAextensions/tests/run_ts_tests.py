@@ -1,6 +1,7 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import os
-from tests.data import PDB,DCD
+from MDAextensions.tests.data import PDB,DCD
 
 try:
     os.mkdir('out_test')

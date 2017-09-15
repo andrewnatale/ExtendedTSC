@@ -1,9 +1,10 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
-from SimpleFeatures import SimpleFeatures
+from MDAextensions.analysis.SimpleFeatures import SimpleFeatures
 
 class VolumeTracker(SimpleFeatures):
     """

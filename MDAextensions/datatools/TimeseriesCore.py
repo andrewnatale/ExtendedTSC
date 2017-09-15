@@ -1,9 +1,10 @@
-from __future__ import print_function
+#!/usr/bin/env python2
+from __future__ import print_function,division
 import sys, os, datetime
 import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as mda
-from TimeseriesDataSet import TimeseriesDataSet as tds
+from MDAextensions.datatools.TimeseriesDataSet import TimeseriesDataSet as tds
 
 class TimeseriesCore(object):
     """
