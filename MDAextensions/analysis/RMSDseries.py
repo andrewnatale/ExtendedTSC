@@ -18,7 +18,7 @@ class RMSDseries(TimeseriesCore):
         self.superpose = False
         self.primaryDS.set_static()
 
-    def run(self, selecttext, frame=0, pdbname=None, alt_selecttext=None, align=False):
+    def run(self, selecttext, frame=0, pdbname=None, alt_selecttext=None, align=False, featurename='rmsdseries'):
         """Arguments:
         selecttext - string; MDAnalysis format selection expression; rmsd will be calculated using
             this set of atoms
@@ -46,10 +46,10 @@ class RMSDseries(TimeseriesCore):
             # target atom selection in trajectory - use alt_selecttext variable if given
             if alt_selecttext:
                 tgt = self.u.select_atoms(alt_selecttext)
-                descriptor = ('rmsdseries', 'RMSD', alt_selecttext)
+                descriptor = (featurename, 'RMSD', alt_selecttext)
             else:
                 tgt = self.u.select_atoms(selecttext)
-                descriptor = ('rmsdseries', 'RMSD', selecttext)
+                descriptor = (featurename, 'RMSD', selecttext)
             # selections must match in length
             if len(tgt) != len(pdbselect):
                 sys.exit('Atom selections for RMSD calculation are not the same size!\n\
@@ -65,9 +65,9 @@ class RMSDseries(TimeseriesCore):
             ref = tgt.positions.copy()
             # reset trajectory to beginning
             self.u.trajectory.rewind()
-            descriptor = ('rmsdseries', 'RMSD', selecttext)
+            descriptor = (featurename, 'RMSD', selecttext)
         self.primaryDS.add_feature(descriptor, width=1)
-        if align:
+        if align is True:
             self.center = True
             self.superpose = True
         # run rmsd calculation

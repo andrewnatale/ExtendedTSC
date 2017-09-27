@@ -135,7 +135,7 @@ def merge_along_time(datlist):
     # return the merged DataSet
     return mergeDS
 
-def merge_along_features(datlist):
+def merge_along_features(datlist, from_memory=False):
     """
     Load a list of datasets that cover the same time window of the same trajectory and merge
     them along the features axis.
@@ -144,13 +144,17 @@ def merge_along_features(datlist):
     datlist - list of strings; paths to dat files to merge
     """
 
-    # load specified files into lists of DataSet objects
-    dats = []
-    for filename in datlist:
-        print('Loading %s for merge operation...' % filename)
-        newDataSet = tsds()
-        newDataSet._read(filename, enforce_version=True)
-        dats.append(newDataSet)
+    # load specified files into DataSet objects
+    # or just use existing objects
+    if from_memory is False:
+        dats = []
+        for filename in datlist:
+            print('Loading %s for merge operation...' % filename)
+            newDataSet = tsds()
+            newDataSet._read(filename, enforce_version=True)
+            dats.append(newDataSet)
+    else:
+        dats = datlist
     # extract parameters from the first DataSet in the list and compare to all the others
     test_length = dats[0].get_length()
     first_frame = dats[0].framerange[0]

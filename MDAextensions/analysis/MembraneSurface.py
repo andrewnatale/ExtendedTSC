@@ -3,7 +3,7 @@ from __future__ import print_function,division
 import sys, os
 import numpy as np
 import scipy.interpolate as scin
-from copy import deepcopy
+#from copy import copy,deepcopy
 from gridData import Grid
 import MDAnalysis as mda
 from MDAnalysis.analysis.base import AnalysisBase
@@ -18,7 +18,7 @@ class MembraneSurface(TimeseriesCore):
     trajectory data with the membrane alignment.
     """
 
-    def run(self, grid_dim, grid_len, surface_sel, midplane_sel, additional_save_sel='protein'):
+    def run(self, grid_dim, grid_len, surface_sel, midplane_sel, solute_sel='protein'):
         """Setup and call _getMDsurfs.run() to calculate the upper and lower leaflet surfaces."""
 
         # # executive decision - do averaging every 200ps if using stype='interp'
@@ -35,7 +35,7 @@ class MembraneSurface(TimeseriesCore):
           self.u,
           stype='interp',
           interp_freq=frequency,
-          additional_save_sel=additional_save_sel,
+          solute_sel=solute_sel,
           verbose=True,
           start=self.primaryDS.framerange[0],
           stop=self.primaryDS.framerange[1],
@@ -102,7 +102,7 @@ class _getMDsurfs(AnalysisBase):
     """
 
     def __init__(self, grid_dim, grid_len, surface_sel, midplane_sel, universe, stype='interp',
-      interp_freq=1, additional_save_sel='protein', **kwargs):
+      interp_freq=1, solute_sel='protein', **kwargs):
         """
         Arguments:
         grid_dim - interger; number of grid points along each axis
@@ -117,9 +117,8 @@ class _getMDsurfs(AnalysisBase):
             strongly reccomended as it is much faster and produces better looking surfaces
         interp_freq - interger; if using stype='interp' this controls how often a surface
             will be calculated and saved, in time steps (1 == every step)
-        additional_save_sel - string; MDAnalysis atom selection expression -
-            add this atom selection to the aligned universe (in addition to surface_sel and
-            midplane_sel groups)
+        solute_sel - string; MDAnalysis atom selection expression -
+            center on this selection and add it to the aligned universe - default 'protein'
         """
 
         super(_getMDsurfs,self).__init__(universe.trajectory,**kwargs)
@@ -128,7 +127,7 @@ class _getMDsurfs(AnalysisBase):
         self.surface_sel = surface_sel
         self.midplane_sel = midplane_sel
         self.u = universe
-        self.additional_save_sel = additional_save_sel
+        self.solute_sel = solute_sel
         self.grid_center = (0.0,0.0)
         self.stype = stype
         self.interp_freq = interp_freq
@@ -156,17 +155,23 @@ class _getMDsurfs(AnalysisBase):
         self.write_coords_list = []
         self.frame_count = 0
         # atomgroup setup
+        self.solute_group = self.u.select_atoms(self.solute_sel)
         self.midplane_group = self.u.select_atoms(self.midplane_sel)
         self.surface_group = self.u.select_atoms(self.surface_sel)
-        self.write_group = self.u.select_atoms('(%s)' % ') or ('.join([self.surface_sel, self.midplane_sel, self.additional_save_sel]))
+        self.write_group = self.u.select_atoms('(%s)' % ') or ('.join([self.surface_sel, self.midplane_sel, self.solute_sel]))
 
     def _single_frame(self):
         # increment the counter
         self.frame_count += 1
-        # deepcopy these arrays
-        midplane_coords = deepcopy(self.midplane_group.positions)
-        surface_coords = deepcopy(self.surface_group.positions)
-        write_coords = deepcopy(self.write_group.positions)
+        # get solute_sel center of geometry for translational alignment
+        solute_cog = np.mean(self.solute_group.positions, axis=0)
+        # # deepcopy these arrays
+        # midplane_coords = deepcopy(self.midplane_group.positions)
+        # surface_coords = deepcopy(self.surface_group.positions)
+        # write_coords = deepcopy(self.write_group.positions)
+        midplane_coords = self.midplane_group.positions - solute_cog
+        surface_coords = self.surface_group.positions - solute_cog
+        write_coords = self.write_group.positions - solute_cog
         # init rotator on just the midplane
         r = rotator(midplane_coords)
         # rotate

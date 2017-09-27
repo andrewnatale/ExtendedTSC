@@ -9,16 +9,14 @@ from MDAnalysis.analysis.base import AnalysisBase
 class _getMDdensity(AnalysisBase):
 
     def __init__(self, grid_dim, grid_len, density_sel, universe,
-      grid_center_sel=None, align_sel=None, **kwargs):
+      grid_center=None, align_sel=None, **kwargs):
         super(_getMDdensity,self).__init__(universe.trajectory,**kwargs)
         self.grid_dim = grid_dim
         self.grid_len = grid_len
         self.density_sel = density_sel
         self.u = universe
-        if grid_center_sel:
-            # do something
-            #self.grid_center = ???
-            pass
+        if grid_center is not None:
+            self.grid_center = grid_center
         else:
             self.grid_center = (0.0, 0.0, 0.0)
         if align_sel:
