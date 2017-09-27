@@ -14,17 +14,13 @@ class VolumeTracker(SimpleFeatures):
     indicating its presence (1) or abscence (0) in the search volume.
     """
 
-    def run(self,vol_selecttext,search_selecttext,mode='atom'):
+    def run(self,vol_selecttext,search_selecttext):
         """
         Arguments:
         vol_selecttext - string; MDAnalysis geometric selection expression; can be multiple volumes
             chained with and/or
         search_selecttext - string; MDAnalysis atom selection expression; defines the atom types to
             be searched for
-
-        Keyword arguments:
-        mode - string; either 'res' or 'atom'; format the resulting measurement list to give
-            coordinates for each found atom, or the center of mass coordinates of found residues
         """
 
         if self.input_type == None:
@@ -34,9 +30,9 @@ class VolumeTracker(SimpleFeatures):
         self.primaryDS.set_dynamic()
         self.maskDS.set_dynamic()
         if self.primaryDS.framerange is None:
-            searcher = _VolumeSearch(vol_selecttext, search_selecttext ,mode, self.u, verbose=True)
+            searcher = _VolumeSearch(vol_selecttext, search_selecttext, self.u, verbose=True)
         else:
-            searcher = _VolumeSearch(vol_selecttext, search_selecttext, mode, self.u, verbose=True,
+            searcher = _VolumeSearch(vol_selecttext, search_selecttext, self.u, verbose=True,
               start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
         searcher.run()
         # setup data sets using search results
@@ -53,21 +49,14 @@ class VolumeTracker(SimpleFeatures):
 class _VolumeSearch(AnalysisBase):
     """
     Class for steping through a trajectory frame by frame and tracking the
-    atoms or residues that enter a specified volume.
+    atoms that enter a specified volume.
     """
 
-    valid_modes = ['res', 'atom']
-
-    def __init__(self,vol_selecttext,search_selecttext,mode,universe,**kwargs):
+    def __init__(self,vol_selecttext,search_selecttext,universe,**kwargs):
         super(_VolumeSearch,self).__init__(universe.trajectory,**kwargs)
         self.vol_selecttext = vol_selecttext
         self.search_selecttext = search_selecttext
         self.u = universe
-        # check mode
-        if mode in self.valid_modes:
-            self.mode = mode
-        else:
-            sys.exit('Invalid mode selected for volumetric search! Possible modes: %s.\nExiting...' % ' '.join(self.valid_modes))
 
     def _prepare(self):
         # setup vars and data structures
@@ -79,13 +68,8 @@ class _VolumeSearch(AnalysisBase):
         # what to do at each frame
         tmpoccupancy = []
         for atom in self.vol_group:
-            # store unique identifiers for found res/atoms
-            if self.mode == 'res':
-                self.selection_set.add((atom.segid,atom.resid))
-                tmpoccupancy.append((atom.segid,atom.resid))
-            elif self.mode == 'atom':
-                self.selection_set.add((atom.index,atom.segid,atom.resid,atom.name))
-                tmpoccupancy.append(atom.index)
+            self.selection_set.add((atom.index,atom.segid,atom.resid,atom.name))
+            tmpoccupancy.append(atom.index)
         self.masking_list.append(tmpoccupancy)
 
     def _conclude(self):
@@ -95,28 +79,18 @@ class _VolumeSearch(AnalysisBase):
         count = 0
         # compose selection descriptors
         for elem in sorted(self.selection_set):
-            count += 1
-            if self.mode == 'res':
-                tmp_name = '%s_%s' % (str(elem[0]),str(elem[1]))
-                tmp_type = 'COM'
-                tmp_selecttext = 'segid %s and resid %s' % (str(elem[0]),str(elem[1]))
-            elif self.mode == 'atom':
-                tmp_name = '%s_%s_%s' % (str(elem[1]),str(elem[2]),str(elem[3]))
-                tmp_type = 'atom'
-                tmp_selecttext = 'segid %s and resid %s and name %s' % (str(elem[1]),str(elem[2]),str(elem[3]))
+            #count += 1
+            tmp_name = '%s_%s_%s_%s' % (str(elem[0]),str(elem[1]),str(elem[2]),str(elem[3]))
+            tmp_type = 'atom'
+            # select by index, because segid/resid may not be unique
+            tmp_selecttext = 'bynum %s' % str(elem[0])
             self.selections.append((tmp_name,tmp_type,tmp_selecttext))
             self.selections_mask.append((tmp_name,'occupancy',tmp_selecttext))
         # build occupancy mask array
-        self.mask = np.zeros((count,len(self.masking_list)), dtype=int)
+        self.mask = np.zeros((len(self.selection_set),len(self.masking_list)), dtype=int)
         # re-iterate over selection set and check occupancy at each timestep
         for idxA, elem in enumerate(sorted(self.selection_set)):
-            if self.mode == 'res':
-                identity = elem
-            elif self.mode == 'atom':
-                identity = elem[0]
+            identity = elem[0]
             for idxB, occupancy in enumerate(self.masking_list):
                 if identity in occupancy:
-                    try:
-                        self.mask[idxA,idxB] = 1
-                    except IndexError:
-                        pass
+                    self.mask[idxA,idxB] = 1

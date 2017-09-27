@@ -8,11 +8,12 @@ setup(name = 'MDAextensions',
         'MDAextensions',
         'MDAextensions.analysis',
         'MDAextensions.datatools',
+        'MDAextensions.scripts',
         'MDAextensions.tests'
       ],
       install_requires = [
         'numpy',
         'scipy',
         'MDAnalysis'
-      ]
+      ],
       )

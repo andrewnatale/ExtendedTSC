@@ -32,7 +32,7 @@ except OSError:
 os.chdir(options['output_prefix'])
 
 # optionally copy input files to another location (like a ramdisk) before loading
-if options['copy_to']:
+if options['copy_to'] is not None:
     try:
         os.makedirs(options['copy_to'])
     except OSError:
@@ -63,7 +63,7 @@ while stopframe < n_frames:
     else:
         startframe = startframe + options['chunksize']
         stopframe = stopframe + options['chunksize']
-    if stopframe >= n_frames-1:
+    if stopframe >= n_frames:
         chunks.append((startframe, -1, 1))
     else:
         chunks.append((startframe, stopframe, 1))
@@ -77,8 +77,9 @@ for key in feature_sets:
             task_id = '0'+task_id
         job_array.append((key, feature_sets[key], framerange, task_id))
 
-# job_runner takes a package of job options as generated above and runs ExtendedTSC
+# job_runner takes a package of job options as generated above and runs the specified analysis
 def job_runner(opts):
+    #print('Starting job with opts: %s' % opts)
     feature_set_name, feature_set_options, framerange, task_id = opts
     fst = feature_set_options['feature_set_type']
     # output tag
@@ -121,6 +122,7 @@ try:
     print('Starting worker processes...')
     mppool = multiprocessing.Pool(int(options['num_proc']))
     mppool.map(job_runner, job_array)
+    print('Worker processes finshed...')
 except Exception as e:
     print('Error in the multiprocessing pool:')
     print(e)
@@ -143,14 +145,16 @@ else:
               and len(filename) == (len(options['job_name']+key)+15):
                 maskmergelist.append(filename)
         b = merge_along_time(sorted(mergelist))
-        b._write(outfilename='%s_%s_all_frames' % (options['job_name'], key))
+        b._write(outfilename='%s_%s_all_frames.dat' % (options['job_name'], key))
         if len(maskmergelist) > 0:
             c = merge_along_time(sorted(maskmergelist))
-            c._write(outfilename='%s_%s_all_frames.mask' % (options['job_name'], key))
+            c._write(outfilename='%s_%s_all_frames.mask.dat' % (options['job_name'], key))
 finally:
+    print('Cleaning up...')
     # cleanup if 'copy_to' option was used
-    if options['copy_to']:
+    if options['copy_to'] is not None:
         if options['copy_to'] != options['input_prefix']:
-            print('Cleaning up...')
             os.remove(os.path.join(input_prefix, universe_recipe['toponame']))
             os.remove(os.path.join(input_prefix, universe_recipe['trajname']))
+    else:
+        pass
