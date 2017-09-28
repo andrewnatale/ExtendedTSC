@@ -50,12 +50,9 @@ class TimeseriesDataSet(Mapping):
         else:
             return None
 
-    # probably a bad idea here... don't use this to do anything
+    # iterate over features, using the list, not the dict (to exclude special elements like 'time')
     def __iter__(self):
-        if self.populated:
-            return iter(self.feature_dict)
-        else:
-            return iter(self.feature_list)
+        return iter(self.feature_list)
 
     # __len__() gives length of feature list (so it won't include 'time')
     # other methods can give the shape of the array

@@ -13,6 +13,10 @@ from MDAextensions.datatools.MergeDS import merge_along_time
 # load config file
 # provides 3 dicts; 'options', 'universe_recipe', and 'feature_sets'
 configfile = sys.argv[1]
+try:
+    trajidx = int(sys.argv[2])
+except IndexError:
+    trajidx = 0
 execfile(configfile)
 
 # implemented feature set types
@@ -55,6 +59,7 @@ n_frames = throwaway.trajectory.n_frames
 # to get frames 0-49 you must pass a framerange of (0, 50, 1)
 startframe = None
 stopframe = None
+
 chunks = []
 while stopframe < n_frames:
     if startframe is None:
