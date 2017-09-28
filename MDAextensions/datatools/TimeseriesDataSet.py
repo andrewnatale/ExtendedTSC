@@ -52,7 +52,11 @@ class TimeseriesDataSet(Mapping):
 
     # iterate over features, using the list, not the dict (to exclude special elements like 'time')
     def __iter__(self):
-        return iter(self.feature_list)
+        # if self.populated:
+        #     return iter(self.feature_dict)
+        # else:
+        #     return iter(self.feature_list)
+        return iter([f.name for f in self.feature_list])
 
     # __len__() gives length of feature list (so it won't include 'time')
     # other methods can give the shape of the array

@@ -128,7 +128,7 @@ def merge_along_time(datlist):
             start_width_idx = None
             end_width_idx = None
             end_time_idx = start_time_idx + ds.get_length()
-            for key in ds.keys():
+            for key in ds.feature_dict.keys():
                 if key in feature_dict.keys():
                     start_width_idx = feature_dict[key][3]
                     end_width_idx = feature_dict[key][4]
