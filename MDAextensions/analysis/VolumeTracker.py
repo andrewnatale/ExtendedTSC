@@ -34,9 +34,9 @@ class VolumeTracker(SimpleFeatures):
         else:
             searcher = _VolumeSearch(vol_selecttext, search_selecttext, self.u, verbose=True,
               start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
-        retcode = searcher.run()
+        searcher.run()
         # setup data sets using search results
-        if retcode == 0:
+        if searcher.retcode == 0:
             for descriptor in searcher.selections:
                 self.primaryDS.add_feature(descriptor)
             for descriptor in searcher.selections_mask:
@@ -46,7 +46,7 @@ class VolumeTracker(SimpleFeatures):
             self.maskDS.format_data(searcher.mask)
             # get the coordinates
             self._generate_timeseries()
-        elif retcode == 1:
+        elif searcher.retcode == 1:
             self.primaryDS.add_feature(searcher.dummy_descriptor,width=1)
             self.maskDS.add_feature(searcher.dummy_descriptor,width=1)
             self.primaryDS.format_data(searcher.dummy)
@@ -101,7 +101,7 @@ class _VolumeSearch(AnalysisBase):
                 for idxB, occupancy in enumerate(self.masking_list):
                     if identity in occupancy:
                         self.mask[idxA,idxB] = 1
-            return 0
+            self.retcode = 0
         # if nothing was found, add dummy data which will be stripped out when merging datasets
         # this is a bit of an ugly fix, but if this class returns empty, zero-length arrays
         # downstream modules will fail ungracefully
@@ -109,4 +109,4 @@ class _VolumeSearch(AnalysisBase):
             self.dummy_descriptor = ('dummy','none','none')
             self.dummy = np.zeros((1,len(self.masking_list)), dtype=float)
             self.mask = np.zeros((1,len(self.masking_list)), dtype=int)
-            return 1
+            self.retcode = 1

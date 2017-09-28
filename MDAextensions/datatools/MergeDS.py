@@ -125,6 +125,8 @@ def merge_along_time(datlist):
         # iterate over datasets to load the array
         start_time_idx = 0
         for ds in dats:
+            start_width_idx = None
+            end_width_idx = None
             end_time_idx = start_time_idx + ds.get_length()
             for key in ds.keys():
                 if key in feature_dict.keys():
