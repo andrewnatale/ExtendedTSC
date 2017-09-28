@@ -34,17 +34,23 @@ class VolumeTracker(SimpleFeatures):
         else:
             searcher = _VolumeSearch(vol_selecttext, search_selecttext, self.u, verbose=True,
               start=self.primaryDS.framerange[0], stop=self.primaryDS.framerange[1], step=self.primaryDS.framerange[2])
-        searcher.run()
+        retcode = searcher.run()
         # setup data sets using search results
-        for descriptor in searcher.selections:
-            self.primaryDS.add_feature(descriptor)
-        for descriptor in searcher.selections_mask:
-            # occupancy measure types must have width=1
-            self.maskDS.add_feature(descriptor,width=1)
-        # load the masking data from the search
-        self.maskDS.format_data(searcher.mask)
-        # now go get the coordinates
-        self._generate_timeseries()
+        if retcode == 0:
+            for descriptor in searcher.selections:
+                self.primaryDS.add_feature(descriptor)
+            for descriptor in searcher.selections_mask:
+                # occupancy measure types must have width=1
+                self.maskDS.add_feature(descriptor,width=1)
+            # load the masking data from the search
+            self.maskDS.format_data(searcher.mask)
+            # get the coordinates
+            self._generate_timeseries()
+        elif retcode == 1:
+            self.primaryDS.add_feature(searcher.dummy_descriptor,width=1)
+            self.maskDS.add_feature(searcher.dummy_descriptor,width=1)
+            self.primaryDS.format_data(searcher.dummy)
+            self.maskDS.format_data(searcher.mask)
 
 class _VolumeSearch(AnalysisBase):
     """
@@ -78,19 +84,29 @@ class _VolumeSearch(AnalysisBase):
         self.selections_mask = []
         count = 0
         # compose selection descriptors
-        for elem in sorted(self.selection_set):
-            #count += 1
-            tmp_name = '%s_%s_%s_%s' % (str(elem[0]),str(elem[1]),str(elem[2]),str(elem[3]))
-            tmp_type = 'atom'
-            # select by index, because segid/resid may not be unique
-            tmp_selecttext = 'bynum %s' % str(elem[0])
-            self.selections.append((tmp_name,tmp_type,tmp_selecttext))
-            self.selections_mask.append((tmp_name,'occupancy',tmp_selecttext))
-        # build occupancy mask array
-        self.mask = np.zeros((len(self.selection_set),len(self.masking_list)), dtype=int)
-        # re-iterate over selection set and check occupancy at each timestep
-        for idxA, elem in enumerate(sorted(self.selection_set)):
-            identity = elem[0]
-            for idxB, occupancy in enumerate(self.masking_list):
-                if identity in occupancy:
-                    self.mask[idxA,idxB] = 1
+        if len(self.selection_set) > 0:
+            for elem in sorted(self.selection_set):
+                #count += 1
+                tmp_name = '%s_%s_%s_%s' % (str(elem[0]),str(elem[1]),str(elem[2]),str(elem[3]))
+                tmp_type = 'atom'
+                # select by index, because segid/resid may not be unique
+                tmp_selecttext = 'bynum %s' % str(elem[0])
+                self.selections.append((tmp_name,tmp_type,tmp_selecttext))
+                self.selections_mask.append((tmp_name,'occupancy',tmp_selecttext))
+            # build occupancy mask array
+            self.mask = np.zeros((len(self.selection_set),len(self.masking_list)), dtype=int)
+            # re-iterate over selection set and check occupancy at each timestep
+            for idxA, elem in enumerate(sorted(self.selection_set)):
+                identity = elem[0]
+                for idxB, occupancy in enumerate(self.masking_list):
+                    if identity in occupancy:
+                        self.mask[idxA,idxB] = 1
+            return 0
+        # if nothing was found, add dummy data which will be stripped out when merging datasets
+        # this is a bit of an ugly fix, but if this class returns empty, zero-length arrays
+        # downstream modules will fail ungracefully
+        elif len(self.selection_set) == 0:
+            self.dummy_descriptor = ('dummy','none','none')
+            self.dummy = np.zeros((1,len(self.masking_list)), dtype=float)
+            self.mask = np.zeros((1,len(self.masking_list)), dtype=int)
+            return 1

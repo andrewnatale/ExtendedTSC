@@ -102,6 +102,12 @@ def merge_along_time(datlist):
             for feature in ds.feature_list:
                 featureset.add((feature.name, feature.type, feature.selecttext, feature.width))
             total_length += ds.get_length()
+        # remove 'dummy' feature, unless it would be the only feature in the merged dataset
+        if len(featureset) > 1:
+            try:
+                featureset.remove(('dummy','none','none',1))
+            except KeyError:
+                pass
         # get the final width of the array
         total_width = np.sum([i[3] for i in featureset])
         # sort features by name and assign indices, this will be the final ordering
