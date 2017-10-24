@@ -18,7 +18,8 @@ class RMSDseries(TimeseriesCore):
         self.superpose = False
         self.primaryDS.set_static()
 
-    def run(self, selecttext, frame=0, pdbname=None, alt_selecttext=None, align=False, featurename='rmsdseries'):
+    def run(self, selection_list, ref_frame=0, pdbname=None, align=False):
+        #   def run(self, selecttext, frame=0, pdbname=None, alt_selecttext=None, align=False, featurename='rmsdseries'):
         """Arguments:
         selecttext - string; MDAnalysis format selection expression; rmsd will be calculated using
             this set of atoms
@@ -39,45 +40,45 @@ class RMSDseries(TimeseriesCore):
         if pdbname:
             # load pdb into its own universe
             ref_u = mda.Universe(pdbname, format='pdb')
-            self.primaryDS.rmsd_reference = '%s \"%s\"' % (os.path.abspath(pdbname), selecttext)
-            # reference atom selection from pdb
-            pdbselect = ref_u.select_atoms(selecttext)
-            ref = pdbselect.positions.copy()
-            # target atom selection in trajectory - use alt_selecttext variable if given
-            if alt_selecttext:
-                tgt = self.u.select_atoms(alt_selecttext)
-                descriptor = (featurename, 'RMSD', alt_selecttext)
-            else:
-                tgt = self.u.select_atoms(selecttext)
-                descriptor = (featurename, 'RMSD', selecttext)
-            # selections must match in length
-            if len(tgt) != len(pdbselect):
-                sys.exit('Atom selections for RMSD calculation are not the same size!\n\
-                  PDB selection contains %d atoms, \
-                  while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
+            self.primaryDS.rmsd_reference = '%s' % os.path.abspath(pdbname)
         else:
-            self.primaryDS.rmsd_reference = 'frame %d \"%s\"' % (frame, selecttext)
-            # target atom selection in trajectory
-            tgt = self.u.select_atoms(selecttext)
-            # set trajectory to reference frame
-            self.u.trajectory[frame]
-            # copy reference coordinates from that frame
-            ref = tgt.positions.copy()
-            # reset trajectory to beginning
-            self.u.trajectory.rewind()
-            descriptor = (featurename, 'RMSD', selecttext)
-        self.primaryDS.add_feature(descriptor, width=1)
+            self.primaryDS.rmsd_reference = 'trajectory frame %d' % frame
+        # set vars to control alignment
         if align is True:
             self.center = True
             self.superpose = True
-        # run rmsd calculation
-        if self.primaryDS.framerange is None:
-            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True)
-        else:
-            series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True,
-              start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
-        series.run()
-        self.primaryDS.format_data(series.rmsd)
+        # parse selection list and calc rmsds
+        series_list = []
+        for elem in selection_list:
+            name, selecttext, alt_selecttext = elem
+            descriptor = (name, 'RMSDseries', str(selecttext)+';'+str(alt_selecttext)+';'+'align=='+str(align))
+            self.primaryDS.add_feature(descriptor, width=1)
+            # target atom selection in trajectory
+            tgt = self.u.select_atoms(selecttext)
+            if pdbname:
+                # reference atom coordinates from pdb
+                pdbselect = ref_u.select_atoms(alt_selecttext)
+                ref = pdbselect.positions.copy()
+                if len(tgt) != len(pdbselect):
+                    sys.exit('Atom selections for RMSD calculation are not the same size!\n\
+                      PDB selection contains %d atoms, \
+                      while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
+            else:
+                # set trajectory to reference frame
+                self.u.trajectory[ref_frame]
+                # copy reference coordinates from that frame
+                ref = tgt.positions.copy()
+                # reset trajectory to beginning
+                self.u.trajectory.rewind()
+            # run rmsd calculation
+            if self.primaryDS.framerange is None:
+                series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True)
+            else:
+                series = _simpleRMSD(tgt, ref, self.u, self.center, self.superpose, verbose=True,
+                  start=self.primaryDS.framerange[0],stop=self.primaryDS.framerange[1],step=self.primaryDS.framerange[2])
+            series.run()
+            series_list.append(series.rmsd)
+        self.primaryDS.format_data(np.stack(series_list, axis=0))
 
 class _simpleRMSD(AnalysisBase):
 
@@ -101,4 +102,4 @@ class _simpleRMSD(AnalysisBase):
     def _conclude(self):
         # convert to array
         self.rmsd = np.array(self.rmsd_list)
-        self.rmsd = np.reshape(self.rmsd, (1,-1))
+        # self.rmsd = np.reshape(self.rmsd, (1,-1))

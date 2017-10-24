@@ -7,40 +7,36 @@ from analysis.VolumeTracker import VolumeTracker
 from analysis.ZSearch import ZSearch
 from analysis.RMSDseries import RMSDseries
 
-outdir = '/Users/anatale/UCSF/Grabe_lab/scratch/tm_helix_features'
+outdir = '/Users/anatale/UCSF/Grabe_lab/scratch/trek_filter_rmsds'
 try:
     os.makedirs(outdir)
 except OSError:
     if not os.path.isdir(outdir):
         raise
 
-datadir = '/Users/anatale/UCSF/Grabe_lab/scratch/traak_surface_align'
+datadir = '/Users/anatale/UCSF/Grabe_lab/data/trek1_ReducedTrj'
 
 traj_names = \
 [
-'traakWT_full_npt.sim1',
-'traakWT_full_npt.sim2',
-'traakWT_s1s3_npt.sim1',
-'traakWT_s1s3_npt.sim2',
-'traakWT_s2s4_npt.sim1',
-'traakWT_s2s4_npt.sim2',
-'traakG124I_full_npt.sim1',
-'traakG124I_full_npt.sim2',
-'traakG124I_s1s3_npt.sim1',
-'traakG124I_s1s3_npt.sim2',
-'traakG124I_s2s4_npt.sim1',
-'traakG124I_s2s4_npt.sim2',
-'traakTM4_npt'
+'trek1_lowK_apo_S3_npt',
+'trek1_lowK_apo_S4_npt',
+'trek1_lowK_holo_QM_npt',
+'trek1_lowK_holo_PC_npt'
 ]
 
+pdb_names = ['apo_xtal_clean.pdb','holo_xtal_clean.pdb']
+
+refidx = [0,0,1,1]
+
 filepairs = []
-for i in traj_names:
+for idx,traj_name in enumerate(traj_names):
     for filename in os.listdir(datadir):
-        if filename.startswith(i) and filename.endswith('mem_align.pdb'):
+        if filename.startswith('topo.'+traj_name) and filename.endswith('.psf'):
             topo = os.path.abspath(os.path.join(datadir,filename))
-        if filename.startswith(i) and filename.endswith('mem_align.dcd'):
+        if filename.startswith(traj_name) and filename.endswith('.dcd'):
             traj = os.path.abspath(os.path.join(datadir,filename))
-    filepairs.append((i,topo,traj))
+    ref = os.path.abspath(os.path.join(datadir,pdb_names[refidx[idx]]))
+    filepairs.append((traj_name,topo,traj,ref))
 
 descriptorlist = [
 ('m4a_m2b',      'distance',      '((segid TRKA and resid 280) or (segid TRKB and resid 155)) and name CA'),

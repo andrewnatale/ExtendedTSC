@@ -3,6 +3,7 @@ from __future__ import print_function,division
 from collections import Mapping,Sequence
 import numpy as np
 import re
+import sys
 from copy import copy,deepcopy
 
 class TimeseriesDataSet(Mapping):
