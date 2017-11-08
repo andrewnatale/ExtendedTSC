@@ -5,6 +5,7 @@ import numpy as np
 # tested and working with MDAnalysis-0.16.1
 import MDAnalysis as mda
 from MDAextensions.datatools.TimeseriesDataSet import TimeseriesDataSet as tds
+from MDAextensions.datatools.CustomErrors import LoadError
 
 class TimeseriesCore(object):
     """
@@ -78,7 +79,7 @@ class TimeseriesCore(object):
             self.primaryDS.traj_stepsize = traj_stepsize
             # parse framerange - this is an ugly kludge, I blame the AnalysisBase API
             # don't forget, if you mess with this, make cooresponding changes to the _write
-            #  method in core.TimeseriesDataSet
+            # method in TimeseriesDataSet
             if framerange is None:
                 self.primaryDS.framerange = (0, -1, 1)
             else:
@@ -86,12 +87,9 @@ class TimeseriesCore(object):
             if self.primaryDS.framerange[1] == -1:
                 self.primaryDS.framerange = (self.primaryDS.framerange[0], None, self.primaryDS.framerange[2])
             self.u = universe
-            if input_type != 'pdb' and input_type in self.valid_data_types:
-                self.input_type = input_type
-            else:
-                sys.exit('Invalid input type for Universe loading! Exiting...')
+            self.input_type = input_type
         else:
-            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
+            raise LoadError(0)
 
     def load_traj(self, topofile, trajfile, traj_stepsize, framerange=None):
         """
@@ -125,7 +123,7 @@ class TimeseriesCore(object):
             self.u = mda.Universe(self.primaryDS.toponame,self.primaryDS.trajname)
             self.input_type = 'generic_traj'
         else:
-            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
+            raise LoadError(0)
 
     def load_pdb(self, pdbfile):
         """
@@ -142,4 +140,4 @@ class TimeseriesCore(object):
             self.u = mda.Universe(self.primaryDS.pdbname, format='pdb')
             self.input_type = 'pdb'
         else:
-            sys.exit('Can only handle one trajectory or structure per instance! Exiting...')
+            raise LoadError(0)

@@ -5,6 +5,7 @@ import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
 from MDAextensions.analysis.SimpleFeatures import SimpleFeatures
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class VolumeTracker(SimpleFeatures):
     """
@@ -24,7 +25,7 @@ class VolumeTracker(SimpleFeatures):
         """
 
         if self.input_type == None:
-            sys.exit('No data has been loaded, cannot run! Exiting...')
+            raise LoadError(1)
         # TODO: input type check, shouldn't process pdbfiles
         self.maskDS.copy_metadata(self.primaryDS)
         self.primaryDS.set_dynamic()

@@ -5,6 +5,7 @@ import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
 from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class ZSearch(TimeseriesCore):
     """
@@ -22,7 +23,7 @@ class ZSearch(TimeseriesCore):
         """
 
         if self.input_type == None:
-            sys.exit('No data has been loaded, cannot run! Exiting...')
+            raise LoadError(1)
         self.primaryDS.set_static()
         if self.primaryDS.framerange is None:
             searcher = _SearchZ(vol_selecttext, search_selecttext, self.u, verbose=True)

@@ -6,6 +6,7 @@ from scipy.signal import convolve as sp_conv
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisFromFunction
 from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class RMSFwindow(TimeseriesCore):
     """
@@ -20,7 +21,7 @@ class RMSFwindow(TimeseriesCore):
     def run(self, selecttext, windowsize):
 
         if self.input_type == None:
-            sys.exit('No data has been loaded, cannot run! Exiting...')
+            raise LoadError(1)
         # setup a temporary dataset
         tmpDS = self._custom_dataset()
         tmpDS.copy_metadata(self.primaryDS)

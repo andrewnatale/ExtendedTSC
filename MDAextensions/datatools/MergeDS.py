@@ -4,6 +4,7 @@ import sys, os, datetime
 import re
 import numpy as np
 from MDAextensions.datatools.TimeseriesDataSet import TimeseriesDataSet as tsds
+from MDAextensions.datatools.CustomErrors import DataSetReadError
 
 def merge_along_time(datlist):
     """
@@ -46,23 +47,22 @@ def merge_along_time(datlist):
         if (ds.framerange[2] != test_stride) \
           or (ds.is_mask != test_is_mask) \
           or (ds.feature_list_type != test_feature_list_type):
-            sys.exit('Failed to merge DataSets due to property mismatch! Exiting...')
+            raise DataSetReadError(4)
     # conditional checks
     for ds in dats[1:]:
         # static feature lists checks
         if test_feature_list_type == 'static':
             if len(ds) != test_n_features:
-                sys.exit('Failed to merge DataSets due to different feature counts! Exiting...')
+                raise DataSetReadError(4)
             elif (ds.get_width() != test_width) and (test_n_features != 1):
-                sys.exit('Failed to merge DataSets due to different data widths and feature count > 1! Exiting...')
+                raise DataSetReadError(4)
             elif (ds.get_width() != test_width) and (test_n_features == 1):
                 print('Warning, data width mismatch! This is expected for some DataSets as long as the feature count = 1.\nArrays will be padded with \'nan\' as needed to match.')
                 pad_with_nan = True
         elif test_feature_list_type == 'dynamic':
             pass
         else:
-            print('Cannot detect feature_list_type! Exiting...')
-            sys.exit(1)
+            raise DataSetReadError(5,ds)
         # check if last frame of preceding file matches first frame of this one
         if last_frame != ds.framerange[0]:
             print('Warning! Apparent overlap or missing frames during merge!')
@@ -180,7 +180,7 @@ def merge_along_features(datlist, from_memory=False):
           or (ds.framerange[2] != test_stride) \
           or (ds.is_mask != test_is_mask) \
           or (ds.feature_list_type != test_feature_list_type):
-            sys.exit('Failed to merge DataSets due to property mismatch! Exiting...')
+            raise DataSetReadError(4)
     # create empty dataset and copy the metadata from the first DataSet in the list
     mergeDS = tsds()
     mergeDS.copy_metadata(dats[0])

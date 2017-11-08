@@ -5,6 +5,7 @@ import numpy as np
 # tested and working with MDAnalysis-0.16.1
 from MDAnalysis.analysis.base import AnalysisBase
 from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class SimpleFeatures(TimeseriesCore):
     """
@@ -24,7 +25,7 @@ class SimpleFeatures(TimeseriesCore):
         """
 
         if self.input_type == None:
-            sys.exit('No data has been loaded, cannot run! Exiting...')
+            raise LoadError(1)
         # setup primaryDS using selections from a list
         for descriptor in selection_list:
             self.primaryDS.add_feature(descriptor)
@@ -37,52 +38,47 @@ class SimpleFeatures(TimeseriesCore):
 
         # check that the primary DataSet object has been properly initialized
         if len(self.primaryDS) == 0:
-            sys.exit('No feature descriptors found in DataSet. Exiting...')
+            raise AnalysisRuntimeError(0)
         elif self.primaryDS.populated is True:
-            sys.exit('DataSet object already contains an array, cannot generate another! Exiting...')
+            raise AnalysisRuntimeError(1)
         # check that feature selections behave as expected on the input topology, and set widths
         for feature in self.primaryDS.feature_list:
             if feature.type == 'atom':
                 tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 1:
-                    sys.exit('Selection %s \"%s\" found %d atoms instead of 1!\nFix the selection and try again. Exiting now...' \
-                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                    raise AnalysisRuntimeError(2, feature.selecttext)
                 feature.set_width(3)
             elif feature.type == 'bond':
                 # not implemented
-                sys.exit('feature type %s not implemented, exiting' % feature.type)
+                raise AnalysisRuntimeError(3, feature.type)
             elif feature.type == 'angle':
                 # not implemented
-                sys.exit('feature type %s not implemented, exiting' % feature.type)
+                raise AnalysisRuntimeError(3, feature.type)
             elif feature.type == 'dihedral':
                 tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 4:
-                    sys.exit('Selection %s \"%s\" found %d atoms instead of 4!\nFix the selection and try again. Exiting now...' \
-                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                    raise AnalysisRuntimeError(2, feature.selecttext)
                 feature.set_width(1)
             elif feature.type == 'distance':
                 tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms != 2:
-                    sys.exit('Selection %s \"%s\" found %d atoms instead of 2!\nFix the selection and try again. Exiting now...' \
-                      % (feature.type, feature.selecttext, tmpselect.n_atoms))
+                    raise AnalysisRuntimeError(2, feature.selecttext)
                 feature.set_width(1)
             elif feature.type == 'COG':
                 tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms == 0:
-                    sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (feature.type, feature.selecttext))
+                    raise AnalysisRuntimeError(2, feature.selecttext)
                 feature.set_width(3)
             elif feature.type == 'COM':
                 tmpselect = self.u.select_atoms(feature.selecttext)
                 if tmpselect.n_atoms == 0:
-                    sys.exit('Selection %s \"%s\" found 0 atoms!\nFix the selection and try again. Exiting now...'\
-                      % (feature.type, feature.selecttext))
+                    raise AnalysisRuntimeError(2, feature.selecttext)
                 feature.set_width(3)
             elif feature.type == 'water_dipole':
                 # not implemented
-                sys.exit('feature type %s not implemented, exiting' % feature.type)
+                raise AnalysisRuntimeError(3, feature.type)
             else:
-                sys.exit('unrecognized measure type %s! Exiting...' % feature.type)
+                raise AnalysisRuntimeError(3, feature.type)
         # generate the array
         if self.primaryDS.framerange is None:
             collection = GenTimeseries(self.primaryDS.feature_list, self.u, verbose=True)

@@ -7,6 +7,7 @@ import MDAnalysis as mda
 from MDAnalysis.analysis.rms import rmsd
 from MDAnalysis.analysis.base import AnalysisBase
 from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class RMSDseries(TimeseriesCore):
     """Calculate RMSDs values for each frame of a trajectory against a specified reference,
@@ -36,7 +37,7 @@ class RMSDseries(TimeseriesCore):
         """
 
         if self.input_type == None:
-            sys.exit('No data has been loaded, cannot run! Exiting...')
+            raise LoadError(1)
         if pdbname:
             # load pdb into its own universe
             ref_u = mda.Universe(pdbname, format='pdb')
@@ -60,9 +61,7 @@ class RMSDseries(TimeseriesCore):
                 pdbselect = ref_u.select_atoms(alt_selecttext)
                 ref = pdbselect.positions.copy()
                 if len(tgt) != len(pdbselect):
-                    sys.exit('Atom selections for RMSD calculation are not the same size!\n\
-                      PDB selection contains %d atoms, \
-                      while trajectory selection contains %d.\n Exiting...' % (len(pdbselect),len(tgt)))
+                    raise AnalysisRuntimeError(2, selecttext+';'+alt_selecttext)
             else:
                 # set trajectory to reference frame
                 self.u.trajectory[ref_frame]

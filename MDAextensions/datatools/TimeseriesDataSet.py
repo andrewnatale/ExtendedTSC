@@ -5,6 +5,7 @@ import numpy as np
 import re
 import sys
 from copy import copy,deepcopy
+from MDAextensions.datatools.CustomErrors import DataSetReadError
 
 class TimeseriesDataSet(Mapping):
     """
@@ -277,7 +278,7 @@ class TimeseriesDataSet(Mapping):
         # superficial check to see if input file was written to completion
         # will definitely not catch all types of problems!
         if lines[-1] != '>end':
-            sys.exit('Likely broken input file! Last line is not \">end\"! Exiting...')
+            raise DataSetReadError(0,infilename)
         # read file header
         leader = lines[0].split()[0]
         while leader != '>endheader':
@@ -288,7 +289,7 @@ class TimeseriesDataSet(Mapping):
                 pass
             # bail if data line is found while reading header
             elif leader == '>data':
-                sys.exit('Data line found in header, check input file and try again! Exiting...')
+                raise DataSetReadError(1,p)
             # fill basic vars from header lines, not all are required
             elif leader == '>version':
                 tmpversion = p.split()[1]
@@ -310,7 +311,7 @@ class TimeseriesDataSet(Mapping):
                 elif p.split()[1] == 'False':
                     read_mask = False
                 else:
-                    sys.exit('Cannot determine if file %s is data or mask. Exiting...' % infilename)
+                    raise DataSetReadError(2,infilename)
             elif leader == '>stepsize(ps)':
                 self.traj_stepsize = int(p.split()[1])
             # despite the mess in every other method that deals with framerange,
@@ -363,12 +364,12 @@ class TimeseriesDataSet(Mapping):
     def _check_file_version(self, version_number, enforce):
         # in some cases, we must fail on any mismatch
         if (enforce == True) and not (version_number in self.compatible_file_versions):
-            sys.exit('File version %s cannot be processed! Exiting...' % version_number)
+            raise DataSetReadError(3,version_number)
         elif version_number is None:
-            print('Warning! Cannot detect file version!')
+            print('Warning! Cannot detect file version, but proceding anyway because enforce != True')
         elif not (version_number in self.compatible_file_versions):
             # in the future, some versions may become obsolete and processing should stop here if detected
-            print('Warning! File version is not current! Some operations may not be supported.')
+            print('Warning! File version is not current but proceding anyway because, enforce != True!')
 
     def trim(self, regex_term, exclude=False):
         """

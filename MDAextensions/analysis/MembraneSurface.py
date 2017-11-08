@@ -10,6 +10,7 @@ from MDAnalysis.analysis.base import AnalysisBase
 from MDAnalysis.coordinates.memory import MemoryReader
 from MDAnalysis.coordinates.DCD import DCDWriter
 from MDAextensions.datatools.TimeseriesCore import TimeseriesCore
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class MembraneSurface(TimeseriesCore):
     """

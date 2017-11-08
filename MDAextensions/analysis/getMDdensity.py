@@ -5,6 +5,7 @@ import numpy as np
 from gridData import Grid
 import MDAnalysis as mda
 from MDAnalysis.analysis.base import AnalysisBase
+from MDAextensions.datatools.CustomErrors import LoadError,AnalysisRuntimeError
 
 class _getMDdensity(AnalysisBase):
 
