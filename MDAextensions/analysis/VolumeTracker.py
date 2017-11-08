@@ -74,9 +74,12 @@ class _VolumeSearch(AnalysisBase):
     def _single_frame(self):
         # what to do at each frame
         tmpoccupancy = []
+        # NOTE: in MDAnalysis, an atom's 'index' uses python 0-based indexing, which is
+        # different from the topology's 1-based indexing;
+        # for consistency, save topology indices - this is what the 'bynum' selection token requires
         for atom in self.vol_group:
-            self.selection_set.add((atom.index,atom.segid,atom.resid,atom.name))
-            tmpoccupancy.append(atom.index)
+            self.selection_set.add((atom.index+1,atom.segid,atom.resid,atom.name))
+            tmpoccupancy.append(atom.index+1)
         self.masking_list.append(tmpoccupancy)
 
     def _conclude(self):
