@@ -25,7 +25,7 @@ class DataSetReadError(Exception):
     2: 'Cannot determine if file is float data or integer mask! Bad file:',
     3: 'DataSet file version cannot be processed! Unsupported version:',
     4: 'Failed to merge DataSets due to property mismatch! Exiting...',
-    5: 'Cannot detect feature_list_type for DataSet:,
+    5: 'Cannot detect feature_list_type for DataSet:',
     }
 
     def __init__(self, errtype, bad_input=None):
