@@ -47,6 +47,15 @@ class VolumeTracker(SimpleFeatures):
             self.maskDS.format_data(searcher.mask)
             # get the coordinates
             self._generate_timeseries()
+            # now use the maskDS to delete extraneous coords in the primaryDS
+            imprint = np.empty_like(self.primaryDS.data)
+            for i in range(self.maskDS.data.shape[0]):
+                tgt_slice = self.maskDS.data[i,:].astype(np.float32)
+                tgt_slice[tgt_slice<0.5] = np.nan
+                imprint[i*3,:] = tgt_slice
+                imprint[i*3+1,:] = tgt_slice
+                imprint[i*3+2,:] = tgt_slice
+            self.primaryDS.data = self.primaryDS.data * imprint
         elif searcher.retcode == 1:
             self.primaryDS.add_feature(searcher.dummy_descriptor,width=1)
             self.maskDS.add_feature(searcher.dummy_descriptor,width=1)
@@ -70,6 +79,7 @@ class _VolumeSearch(AnalysisBase):
         self.vol_group = self.u.select_atoms('(%s) and (%s)' % (self.vol_selecttext, self.search_selecttext), updating=True)
         self.selection_set = set()
         self.masking_list = []
+        self.coords_list = []
 
     def _single_frame(self):
         # what to do at each frame
